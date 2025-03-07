@@ -47,7 +47,6 @@
 		<properties>
 			<property name="forbiddenFunctions" type="array">
 				<element key="die" value="null"/>
-				<element key="exit" value="null"/>
 			</property>
 		</properties>
 	</rule>

@@ -15,7 +15,7 @@ class Job {
 		$this->hasRun = false;
 	}
 
-	public function isDue(DateTime $now = null):bool{
+	public function isDue(?DateTime $now = null):bool {
 		if(is_null($now)) {
 			$now = new DateTime();
 		}
@@ -23,7 +23,7 @@ class Job {
 		return $this->expression->isDue($now);
 	}
 
-	public function getNextRunDate(DateTime $now = null):DateTime {
+	public function getNextRunDate(?DateTime $now = null):DateTime {
 		if(is_null($now)) {
 			$now = new DateTime();
 		}

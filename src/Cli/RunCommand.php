@@ -13,7 +13,8 @@ use Gt\Cron\RunnerFactory;
 use Gt\Cron\ScriptExecutionException;
 
 class RunCommand extends Command {
-	public function run(ArgumentValueList $arguments = null):void {
+	/** @SuppressWarnings(PHPMD.ExitExpression) */
+	public function run(?ArgumentValueList $arguments = null):void {
 		$filename = $arguments->get("file", "crontab");
 		$filePath = implode(DIRECTORY_SEPARATOR, [
 			getcwd(),
@@ -65,6 +66,7 @@ class RunCommand extends Command {
 		}
 	}
 
+	/** @SuppressWarnings(PHPMD.ExitExpression) */
 	public function cronRunStep(
 		int $jobsRan,
 		?DateTime $wait,
@@ -131,7 +133,7 @@ class RunCommand extends Command {
 
 	/** @return  Parameter[] */
 	public function getRequiredParameterList():array {
-		return[];
+		return [];
 	}
 
 	/** @return  Parameter[] */
@@ -141,7 +143,7 @@ class RunCommand extends Command {
 				false,
 				"watch",
 				"w",
-				"Pass this flag to continue running cron commands as they become due. Without this flag, cron will only run the commands that are due at the point of executing the command."
+				"Pass this flag to continue running cron commands as they become due. Without this flag, cron will only run the commands that are due at the point of executing the command." // phpcs:ignore Generic.Files.LineLength.TooLong
 			),
 			new Parameter(
 				false,
