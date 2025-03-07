@@ -7,10 +7,10 @@ Define background jobs in standard crontab format and the Cron Runner will execu
 <a href="https://github.com/PhpGt/Cron/actions" target="_blank">
 	<img src="https://badge.status.php.gt/cron-build.svg" alt="Build status" />
 </a>
-<a href="https://scrutinizer-ci.com/g/PhpGt/Cron" target="_blank">
+<a href="https://app.codacy.com/gh/PhpGt/Cron" target="_blank">
 	<img src="https://badge.status.php.gt/cron-quality.svg" alt="Code quality" />
 </a>
-<a href="https://scrutinizer-ci.com/g/PhpGt/Cron" target="_blank">
+<a href="https://app.codacy.com/gh/PhpGt/Cron" target="_blank">
 	<img src="https://badge.status.php.gt/cron-coverage.svg" alt="Code coverage" />
 </a>
 <a href="https://packagist.org/packages/PhpGt/Cron" target="_blank">

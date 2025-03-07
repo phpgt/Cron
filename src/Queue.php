@@ -9,7 +9,7 @@ class Queue {
 	/** @var DateTime|null The time to use as "now". If null, always use current system time */
 	protected $now;
 
-	public function __construct(DateTime &$now = null) {
+	public function __construct(?DateTime &$now = null) {
 		$this->jobList = [];
 		$this->now = $now;
 	}
@@ -83,7 +83,7 @@ class Queue {
 		return $nextJob;
 	}
 
-	public function now(DateTime $newNow = null):DateTime {
+	public function now(?DateTime $newNow = null):DateTime {
 		if(!is_null($newNow)) {
 			$this->now = $newNow;
 		}

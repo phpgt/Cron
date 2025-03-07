@@ -19,7 +19,7 @@ class Runner {
 		JobRepository $jobRepository,
 		QueueRepository $queueRepository,
 		string $contents,
-		DateTime $now = null
+		?DateTime $now = null,
 	) {
 		$this->queue = call_user_func(
 			[$queueRepository, "createAtTime"],
