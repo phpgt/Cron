@@ -3,13 +3,15 @@
 	"description": "Run scripts or static functions at regular intervals.",
 
 	"require": {
-		"php": ">=7.4",
+		"php": ">=8.1",
 		"phpgt/cli": "1.*",
 		"dragonmantank/cron-expression": "^2.2"
 	},
 	"require-dev": {
-		"phpstan/phpstan": "^v1.8",
-		"phpunit/phpunit": "^v9.5"
+		"phpstan/phpstan": "^1.10",
+		"phpunit/phpunit": "^10.1",
+		"phpmd/phpmd": "^2.13",
+		"squizlabs/php_codesniffer": "^3.7"
 	},
 
 	"autoload": {
