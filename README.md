@@ -34,3 +34,9 @@ Define background jobs in standard crontab format and the Cron Runner will execu
 Start the Runner: `vendor/bin/cron`.
 
 If you're using [WebEngine](https://php.gt/webengine), the Cron Runner is automatically started for you by running `gt run`.
+
+# Proudly sponsored by
+
+[JetBrains Open Source sponsorship program](https://www.jetbrains.com/community/opensource/)
+
+[![JetBrains logo.](https://resources.jetbrains.com/storage/products/company/brand/logos/jetbrains.svg)](https://www.jetbrains.com/community/opensource/)
