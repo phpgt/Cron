@@ -98,6 +98,7 @@ class Job {
 	}
 
 	protected function executeScript():void {
+		$command = $this->resolveScriptCommand();
 		$descriptor = [
 			0 => ["pipe", "r"],
 			1 => ["pipe", "w"],
@@ -106,7 +107,7 @@ class Job {
 		$pipes = [];
 
 		$proc = proc_open(
-			$this->command,
+			$command,
 			$descriptor,
 			$pipes
 		);
@@ -132,5 +133,47 @@ class Job {
 		if($proc) {
 			proc_close($proc);
 		}
+	}
+
+	protected function resolveScriptCommand():string {
+		$matches = [];
+		if(!preg_match(
+			"/^(?P<script>\\S+)(?P<args>\\s.*)?$/",
+			$this->command,
+			$matches
+		)) {
+			return $this->command;
+		}
+
+		$script = $matches["script"];
+		$args = $matches["args"] ?? "";
+
+		if(strpos($script, "/") !== false
+		|| strpos($script, "\\") !== false) {
+			return $this->command;
+		}
+
+		if(substr(strtolower($script), -4) === ".php") {
+			$script = substr($script, 0, -4);
+		}
+
+		if(strlen($script) === 0
+		|| !preg_match("/^[a-zA-Z0-9._-]+$/", $script)) {
+			return $this->command;
+		}
+
+		$scriptPath = implode(DIRECTORY_SEPARATOR, [
+			getcwd(),
+			"cron",
+			"$script.php",
+		]);
+		if(!is_file($scriptPath)) {
+			return $this->command;
+		}
+
+		return PHP_BINARY
+			. " "
+			. escapeshellarg($scriptPath)
+			. $args;
 	}
 }
