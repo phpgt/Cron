@@ -5,6 +5,7 @@ use Cron\CronExpression;
 use DateInterval;
 use DateTime;
 use Gt\Cron\CronException;
+use Gt\Cron\FunctionExecutionException;
 use Gt\Cron\Job;
 use Gt\Cron\ScriptExecutionException;
 use Gt\Cron\Test\Helper\Override;
@@ -172,6 +173,18 @@ class JobTest extends TestCase {
 		$job->run();
 		self::assertCount(1, $procCalls["proc_open"]);
 		self::assertCount(0, $procCalls["proc_close"]);
+	}
+
+	public function testRunFunctionNotExists():void {
+		$command = "Gt\\Cron\\Test\\Nothing::thisDoesNotExist";
+		$job = new Job(
+			$this->mockExpression(),
+			$command
+		);
+
+		self::expectException(FunctionExecutionException::class);
+		self::expectExceptionMessage($command);
+		$job->run();
 	}
 
 	public static function assertDateTimeEquals(
