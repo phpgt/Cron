@@ -50,6 +50,21 @@ class Queue {
 		return $jobsRan;
 	}
 
+	/** @return string[] */
+	public function runDueJobsAndGetCommands():array {
+		$commandList = [];
+
+		foreach($this->jobList as $job) {
+			if(!$job->hasRun()
+			&& $job->isDue($this->now())) {
+				$job->run();
+				$commandList []= $job->getCommand();
+			}
+		}
+
+		return $commandList;
+	}
+
 	public function runAllJobs():int {
 		$jobsRan = 0;
 
@@ -81,6 +96,15 @@ class Queue {
 		}
 
 		return $nextJob;
+	}
+
+	public function commandOfNextJob():?string {
+		$nextJob = $this->getNextJob();
+		if(!$nextJob) {
+			return null;
+		}
+
+		return $nextJob->getCommand();
 	}
 
 	public function now(?DateTime $newNow = null):DateTime {

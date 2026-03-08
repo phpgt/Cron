@@ -2,6 +2,7 @@
 namespace Gt\Cron\Test\Command;
 
 use Gt\Cli\Argument\ArgumentValueList;
+use Gt\Cli\Stream;
 use Gt\Cron\Cli\RunCommand;
 use Gt\Cron\Test\Command\CommandTestCase;
 use Gt\Cron\Test\Helper\ExampleClass;
@@ -49,8 +50,19 @@ CRON;
 			ExampleClass::$calls
 		);
 
-		self::assertStreamOutput("Just ran 1 job", $stream);
-		self::assertStreamOutput("Stopping now", $stream);
+		$output = $this->getFullOutput($stream);
+		self::assertStringContainsString(
+			"Just ran 1 job (ExampleClass::doSomething)",
+			$output
+		);
+		self::assertStringContainsString(
+			"Next job at:",
+			$output
+		);
+		self::assertStringContainsString(
+			"(ExampleClass::doSomething)",
+			$output
+		);
 	}
 
 	public function testRunNowFunctionWithArguments() {
@@ -273,6 +285,16 @@ CRON;
 			1,
 			\Gt\Cron\Test\Helper\ExampleClass::$calls
 		);
+
+		$output = $this->getFullOutput($stream);
+		self::assertStringContainsString(
+			"Just ran 2 jobs (doSomething, ExampleClass::doSomething)",
+			$output
+		);
+		self::assertStringContainsString(
+			"Next job at:",
+			$output
+		);
 	}
 
 	public function testRunNowScriptNotExists() {
@@ -319,5 +341,11 @@ CRON;
 			"Error executing function: Gt\\Cron\\Test\\Nothing::thisDoesNotExist",
 			$stream
 		);
+	}
+
+	protected function getFullOutput(Stream $stream):string {
+		$out = $stream->getOutStream();
+		$out->rewind();
+		return $out->fread(10000);
 	}
 }
