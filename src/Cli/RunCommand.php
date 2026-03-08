@@ -70,9 +70,10 @@ class RunCommand extends Command {
 	public function cronRunStep(
 		int $jobsRan,
 		?DateTime $wait,
-		bool $continue
+		bool $continue,
+		array $runCommandList = [],
+		?string $nextCommand = null
 	):void {
-		$message = "";
 		$now = new DateTime();
 
 		if(is_null($wait)) {
@@ -80,17 +81,25 @@ class RunCommand extends Command {
 			exit(0);
 		}
 
-		$jobPlural = "job";
-		if($jobsRan !== 1) {
-			$jobPlural .= "s";
+		$jobPlural = $jobsRan === 1 ? "job" : "jobs";
+		$displayedRunCommands = array_map(
+			function(string $command):string {
+				return $this->displayCommandName($command);
+			},
+			$runCommandList
+		);
+
+		$message = "Just ran $jobsRan $jobPlural";
+		if($displayedRunCommands) {
+			$message .= " (" . implode(", ", $displayedRunCommands) . ")";
 		}
 
-		if($jobsRan > 0) {
-			$message = "Just ran $jobsRan $jobPlural, ";
+		$this->stream->writeLine($message);
+
+		$message = "Next job at: " . $wait->format("H:i:s");
+		if($nextCommand) {
+			$message .= " (" . $this->displayCommandName($nextCommand) . ")";
 		}
-
-
-		$message .= "next job at: " . $wait->format("H:i:s");
 
 		if($now->diff($wait)->format("%a") > 0) {
 			$message .= " on " . $wait->format("dS M");
@@ -98,17 +107,26 @@ class RunCommand extends Command {
 		if($now->diff($wait)->format("%y") > 0) {
 			$message .= " " . $wait->format("Y");
 		}
+		$this->stream->writeLine($message);
 
 		if($continue) {
-			$message .= ". Waiting...";
+			$this->stream->writeLine("Waiting...");
 		}
-		else {
-			$message .= ". Stopping now.";
+	}
+
+	protected function displayCommandName(string $command):string {
+		$command = trim($command);
+		if(strpos($command, "::") !== false) {
+			$functionExpression = trim(
+				preg_replace("/\\s*\\(.+$/", "", $command)
+			);
+			[$class, $method] = explode("::", $functionExpression, 2);
+			$class = basename(str_replace("\\", "/", $class));
+			return "$class::$method";
 		}
 
-		$this->stream->writeLine(
-			ucfirst($message)
-		);
+		$script = preg_split("/\\s+/", $command, 2)[0];
+		return basename(str_replace("\\", "/", $script));
 	}
 
 	public function getName():string {

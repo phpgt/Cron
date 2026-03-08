@@ -248,6 +248,41 @@ CRON;
 		self::assertEquals(2, $count);
 	}
 
+	public function testRunCallbackIncludesCommands():void {
+		$cronContents = <<<CRON
+* * * * * ExampleClass::example
+CRON;
+
+		$runner = new Runner(
+			$this->mockJobRepository(0),
+			$this->mockQueueRepository(0),
+			$cronContents
+		);
+
+		$jobsRan = 0;
+		$runCommandList = [];
+		$nextCommand = null;
+		$runner->setRunCallback(
+			function(
+				int $jobsRanArg,
+				?DateTime $wait,
+				bool $continue,
+				array $runCommandListArg,
+				?string $nextCommandArg
+			) use(&$jobsRan, &$runCommandList, &$nextCommand) {
+				$jobsRan = $jobsRanArg;
+				$runCommandList = $runCommandListArg;
+				$nextCommand = $nextCommandArg;
+			}
+		);
+
+		$runner->run();
+
+		self::assertEquals(1, $jobsRan);
+		self::assertEquals(["ExampleClass::example"], $runCommandList);
+		self::assertEquals("ExampleClass::example", $nextCommand);
+	}
+
 	public function testComments() {
 		$cronContents = <<<CRON
 * * * * * ExampleClass::example1
@@ -323,8 +358,14 @@ CRON;
 		$queue = self::createMock(Queue::class);
 		$queue->method("runDueJobs")
 			->willReturn($numberDueJobs);
+		$queue->method("runDueJobsAndGetCommands")
+			->willReturn(
+				array_fill(0, $numberDueJobs, "ExampleClass::example")
+			);
 		$queue->method("secondsUntilNextJob")
 			->willReturn($secondsUntilNextJob);
+		$queue->method("commandOfNextJob")
+			->willReturn("ExampleClass::example");
 
 		$repository = self::createMock(QueueRepository::class);
 		$repository->method("createAtTime")
