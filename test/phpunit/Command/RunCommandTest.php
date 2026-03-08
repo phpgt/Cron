@@ -134,6 +134,82 @@ CRON;
 		);
 	}
 
+	public function testRunNowScriptAliasInCronDirectoryWithExtension() {
+		$cronScriptPath = implode(DIRECTORY_SEPARATOR, [
+			$this->projectDirectory,
+			"cron",
+			"myScript.php",
+		]);
+		mkdir(dirname($cronScriptPath), 0775, true);
+		file_put_contents($cronScriptPath, "<?php");
+
+		$cronContents = <<<CRON
+* * * * * myScript.php
+CRON;
+		$this->writeCronContents($cronContents);
+		$stream = $this->getStream();
+		chdir($this->projectDirectory);
+
+		$calledCommand = null;
+		Override::setCallback(
+			"proc_open",
+			function($command)use(&$calledCommand) {
+				$calledCommand = $command;
+			}
+		);
+		Override::load("proc_get_status");
+		Override::load("proc_close");
+
+		$args = new ArgumentValueList();
+		$args->set("once");
+		$command = new RunCommand();
+		$command->setStream($stream);
+		$command->run($args);
+
+		self::assertEquals(
+			PHP_BINARY . " " . escapeshellarg($cronScriptPath),
+			$calledCommand
+		);
+	}
+
+	public function testRunNowScriptAliasInCronDirectoryWithoutExtension() {
+		$cronScriptPath = implode(DIRECTORY_SEPARATOR, [
+			$this->projectDirectory,
+			"cron",
+			"myScript.php",
+		]);
+		mkdir(dirname($cronScriptPath), 0775, true);
+		file_put_contents($cronScriptPath, "<?php");
+
+		$cronContents = <<<CRON
+* * * * * myScript
+CRON;
+		$this->writeCronContents($cronContents);
+		$stream = $this->getStream();
+		chdir($this->projectDirectory);
+
+		$calledCommand = null;
+		Override::setCallback(
+			"proc_open",
+			function($command)use(&$calledCommand) {
+				$calledCommand = $command;
+			}
+		);
+		Override::load("proc_get_status");
+		Override::load("proc_close");
+
+		$args = new ArgumentValueList();
+		$args->set("once");
+		$command = new RunCommand();
+		$command->setStream($stream);
+		$command->run($args);
+
+		self::assertEquals(
+			PHP_BINARY . " " . escapeshellarg($cronScriptPath),
+			$calledCommand
+		);
+	}
+
 	public function testRunNowScriptWithArguments() {
 		$cronContents = <<<CRON
 * * * * * /path/to/script/doSomething "a test message" 123
