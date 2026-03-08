@@ -136,37 +136,17 @@ class Job {
 	}
 
 	protected function resolveScriptCommand():string {
-		$matches = [];
-		if(!preg_match(
-			"/^(?P<script>\\S+)(?P<args>\\s.*)?$/",
-			$this->command,
-			$matches
-		)) {
+		$scriptParts = $this->parseScriptCommand($this->command);
+		if(is_null($scriptParts)) {
 			return $this->command;
 		}
 
-		$script = $matches["script"];
-		$args = $matches["args"] ?? "";
-
-		if(strpos($script, "/") !== false
-		|| strpos($script, "\\") !== false) {
+		$script = $this->normaliseScriptName($scriptParts["script"]);
+		if(!$this->isValidScriptName($script)) {
 			return $this->command;
 		}
 
-		if(substr(strtolower($script), -4) === ".php") {
-			$script = substr($script, 0, -4);
-		}
-
-		if(strlen($script) === 0
-		|| !preg_match("/^[a-zA-Z0-9._-]+$/", $script)) {
-			return $this->command;
-		}
-
-		$scriptPath = implode(DIRECTORY_SEPARATOR, [
-			getcwd(),
-			"cron",
-			"$script.php",
-		]);
+		$scriptPath = $this->getLocalCronScriptPath($script);
 		if(!is_file($scriptPath)) {
 			return $this->command;
 		}
@@ -174,6 +154,49 @@ class Job {
 		return PHP_BINARY
 			. " "
 			. escapeshellarg($scriptPath)
-			. $args;
+			. $scriptParts["args"];
+	}
+
+	/** @return null|array{script:string,args:string} */
+	protected function parseScriptCommand(string $command):?array {
+		$matches = [];
+		if(!preg_match(
+			"/^(?P<script>\\S+)(?P<args>\\s.*)?$/",
+			$command,
+			$matches
+		)) {
+			return null;
+		}
+
+		return [
+			"script" => $matches["script"],
+			"args" => $matches["args"] ?? "",
+		];
+	}
+
+	protected function normaliseScriptName(string $script):string {
+		if(substr(strtolower($script), -4) === ".php") {
+			return substr($script, 0, -4);
+		}
+
+		return $script;
+	}
+
+	protected function isValidScriptName(string $script):bool {
+		if(strpos($script, "/") !== false
+		|| strpos($script, "\\") !== false) {
+			return false;
+		}
+
+		return strlen($script) > 0
+			&& preg_match("/^[a-zA-Z0-9._-]+$/", $script);
+	}
+
+	protected function getLocalCronScriptPath(string $script):string {
+		return implode(DIRECTORY_SEPARATOR, [
+			getcwd(),
+			"cron",
+			"$script.php",
+		]);
 	}
 }
