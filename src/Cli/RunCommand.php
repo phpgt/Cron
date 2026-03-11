@@ -22,7 +22,7 @@ class RunCommand extends Command {
 		]);
 
 		try {
-			$runner = RunnerFactory::createForProject(
+			$runner = (new RunnerFactory())->createForProject(
 				getcwd(),
 				$filename
 			);

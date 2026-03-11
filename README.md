@@ -35,6 +35,10 @@ Start the Runner: `vendor/bin/cron`.
 
 If you're using [WebEngine](https://php.gt/webengine), the Cron Runner is automatically started for you by running `gt run`.
 
+## Examples
+
+There is an [example](example/README.md) directory with numbered scripts that can be run directly with `php`. Each one embeds its own crontab string so the schedule and output stay together.
+
 # Proudly sponsored by
 
 [JetBrains Open Source sponsorship program](https://www.jetbrains.com/community/opensource/)

@@ -4,8 +4,7 @@
 
 	"require": {
 		"php": ">=8.1",
-		"phpgt/cli": "1.*",
-		"dragonmantank/cron-expression": "^2.2"
+		"phpgt/cli": "1.*"
 	},
 	"require-dev": {
 		"phpstan/phpstan": "^1.10",

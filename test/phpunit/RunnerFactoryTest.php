@@ -16,7 +16,7 @@ class RunnerFactoryTest extends TestCase {
 		]);
 		mkdir($dir, 0775, true);
 		self::expectException(CrontabNotFoundException::class);
-		RunnerFactory::createForProject($dir);
+		(new RunnerFactory())->createForProject($dir);
 	}
 
 	public function testCreateForProject() {
@@ -31,7 +31,7 @@ class RunnerFactoryTest extends TestCase {
 			$dir,
 			"crontab",
 		]));
-		$runner = RunnerFactory::createForProject(
+		$runner = (new RunnerFactory())->createForProject(
 			$dir
 		);
 

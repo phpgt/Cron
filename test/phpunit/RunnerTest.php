@@ -300,6 +300,20 @@ CRON;
 		self::assertEquals(2, $runner->getNumJobs());
 	}
 
+	public function testNicknameExpressions():void {
+		$cronContents = <<<CRON
+@daily ExampleClass::daily
+CRON;
+
+		$runner = new Runner(
+			$this->mockJobRepository(0),
+			$this->mockQueueRepository(0),
+			$cronContents
+		);
+
+		self::assertEquals(1, $runner->getNumJobs());
+	}
+
 	public function testOnlyComments() {
 		$cronContents = <<<CRON
 # List your background tasks here in normal crontab syntax

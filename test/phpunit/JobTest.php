@@ -1,12 +1,13 @@
 <?php
 namespace Gt\Cron\Test;
 
-use Cron\CronExpression;
 use DateInterval;
 use DateTime;
 use Gt\Cron\CronException;
+use Gt\Cron\Expression;
 use Gt\Cron\FunctionExecutionException;
 use Gt\Cron\Job;
+use Gt\Cron\ScriptOutputMode;
 use Gt\Cron\ScriptExecutionException;
 use Gt\Cron\Test\Helper\Override;
 use PHPUnit\Framework\TestCase;
@@ -187,6 +188,46 @@ class JobTest extends TestCase {
 		$job->run();
 	}
 
+	/** @runInSeparateProcess */
+	public function testRunScriptCaptureOutput():void {
+		$command = PHP_BINARY . " -r "
+			. escapeshellarg("fwrite(STDOUT, 'out');fwrite(STDERR, 'err');");
+
+		$job = new Job(
+			$this->mockExpression(),
+			$command,
+			ScriptOutputMode::CAPTURE
+		);
+
+		$job->run();
+
+		self::assertSame("out", $job->getStdout());
+		self::assertSame("err", $job->getStderr());
+	}
+
+	/** @runInSeparateProcess */
+	public function testRunScriptInheritOutputDescriptor():void {
+		$job = new Job(
+			$this->mockExpression(),
+			"example",
+			ScriptOutputMode::INHERIT
+		);
+
+		$descriptor = null;
+		Override::setCallback("proc_open", function($command, $descriptorArg) use(&$descriptor) {
+			$descriptor = $descriptorArg;
+			return "EXAMPLE_PROCESS";
+		});
+		Override::load("proc_get_status");
+		Override::setCallback("proc_close", function() {
+		});
+
+		$job->run();
+
+		self::assertSame(["file", "php://stdout", "w"], $descriptor[1]);
+		self::assertSame(["file", "php://stderr", "w"], $descriptor[2]);
+	}
+
 	public static function assertDateTimeEquals(
 		DateTime $expected,
 		DateTime $actual,
@@ -199,7 +240,7 @@ class JobTest extends TestCase {
 		);
 	}
 
-	protected function mockExpression(int...$wait):CronExpression {
+	protected function mockExpression(int...$wait):Expression {
 		$runDateCallbackCount = 0;
 
 		$runDate = [];
@@ -212,7 +253,7 @@ class JobTest extends TestCase {
 			$runDate []= $d;
 		}
 
-		$expression = self::createMock(CronExpression::class);
+		$expression = self::createMock(Expression::class);
 		$expression->method("isDue")
 			->willReturnOnConsecutiveCalls(...$isDue);
 		$expression->method("getNextRunDate")
@@ -223,7 +264,7 @@ class JobTest extends TestCase {
 				return $value;
 			});
 
-		/** @var CronExpression $expression */
+		/** @var Expression $expression */
 		return $expression;
 	}
 }

@@ -1,18 +1,27 @@
 <?php
 namespace Gt\Cron;
 
-use Cron\CronExpression;
 use DateTime;
 
 class Job {
-	protected CronExpression $expression;
+	protected Expression $expression;
 	protected string $command;
 	protected bool $hasRun;
+	protected ScriptOutputMode $scriptOutputMode;
+	protected string $stdout;
+	protected string $stderr;
 
-	public function __construct(CronExpression $expression, string $command) {
+	public function __construct(
+		Expression $expression,
+		string $command,
+		ScriptOutputMode $scriptOutputMode = ScriptOutputMode::DISCARD
+	) {
 		$this->expression = $expression;
 		$this->command = $command;
 		$this->hasRun = false;
+		$this->scriptOutputMode = $scriptOutputMode;
+		$this->stdout = "";
+		$this->stderr = "";
 	}
 
 	public function isDue(?DateTime $now = null):bool {
@@ -34,8 +43,18 @@ class Job {
 		return $this->command;
 	}
 
+	public function getStdout():string {
+		return $this->stdout;
+	}
+
+	public function getStderr():string {
+		return $this->stderr;
+	}
+
 	public function run():void {
 		$this->hasRun = true;
+		$this->stdout = "";
+		$this->stderr = "";
 
 		if($this->isFunction()) {
 			$this->executeFunction();
@@ -79,7 +98,7 @@ class Job {
 				$bracketPos
 			);
 			$argsString = trim($argsString, " ();");
-			$args = str_getcsv($argsString);
+			$args = str_getcsv($argsString, ",", "\"", "\\");
 
 			$command = substr(
 				$command,
@@ -99,11 +118,7 @@ class Job {
 
 	protected function executeScript():void {
 		$command = $this->resolveScriptCommand();
-		$descriptor = [
-			0 => ["pipe", "r"],
-			1 => ["pipe", "w"],
-			2 => ["pipe", "w"],
-		];
+		$descriptor = $this->createScriptDescriptor();
 		$pipes = [];
 
 		$proc = proc_open(
@@ -124,6 +139,10 @@ class Job {
 			}
 		}while($status["running"]);
 
+		if($proc) {
+			$this->captureProcessOutput($pipes);
+		}
+
 		if($status["exitcode"] > 0) {
 			throw new ScriptExecutionException(
 				$this->command
@@ -131,8 +150,64 @@ class Job {
 		}
 
 		if($proc) {
+			$this->closePipes($pipes);
 			proc_close($proc);
 		}
+	}
+
+	/** @return array<int, mixed> */
+	protected function createScriptDescriptor():array {
+		$stdin = ["pipe", "r"];
+
+		return match($this->scriptOutputMode) {
+			ScriptOutputMode::INHERIT => [
+				0 => $stdin,
+				1 => ["file", "php://stdout", "w"],
+				2 => ["file", "php://stderr", "w"],
+			],
+			ScriptOutputMode::CAPTURE => [
+				0 => $stdin,
+				1 => ["pipe", "w"],
+				2 => ["pipe", "w"],
+			],
+			default => [
+				0 => $stdin,
+				1 => ["file", $this->nullDevice(), "w"],
+				2 => ["file", $this->nullDevice(), "w"],
+			],
+		};
+	}
+
+	/** @param array<int,mixed> $pipes */
+	protected function captureProcessOutput(array $pipes):void {
+		if($this->scriptOutputMode !== ScriptOutputMode::CAPTURE) {
+			return;
+		}
+
+		if(isset($pipes[1]) && is_resource($pipes[1])) {
+			$this->stdout = stream_get_contents($pipes[1]) ?: "";
+		}
+
+		if(isset($pipes[2]) && is_resource($pipes[2])) {
+			$this->stderr = stream_get_contents($pipes[2]) ?: "";
+		}
+	}
+
+	/** @param array<int,mixed> $pipes */
+	protected function closePipes(array $pipes):void {
+		foreach($pipes as $pipe) {
+			if(is_resource($pipe)) {
+				fclose($pipe);
+			}
+		}
+	}
+
+	protected function nullDevice():string {
+		if(PHP_OS_FAMILY === "Windows") {
+			return "NUL";
+		}
+
+		return "/dev/null";
 	}
 
 	protected function resolveScriptCommand():string {
