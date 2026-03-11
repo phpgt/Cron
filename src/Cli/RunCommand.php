@@ -66,7 +66,10 @@ class RunCommand extends Command {
 		}
 	}
 
-	/** @SuppressWarnings(PHPMD.ExitExpression) */
+	/**
+	 * @param array<string> $runCommandList
+	 * @SuppressWarnings(PHPMD.ExitExpression)
+	 */
 	public function cronRunStep(
 		int $jobsRan,
 		?DateTime $wait,
