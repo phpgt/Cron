@@ -62,7 +62,7 @@ class Job {
 			$this->executeFunction();
 		}
 		else {
-// Assume the command is a shell command.
+			// Assume the command is a shell command.
 			$this->executeScript();
 		}
 	}
