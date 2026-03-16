@@ -1,10 +1,13 @@
 <?php
 namespace Gt\Cron;
 
-use Cron\CronExpression;
-
 class JobRepository {
-	public function create(CronExpression $expression, string $command):Job {
-		return new Job($expression, $command);
+	public function __construct(
+		protected ScriptOutputMode $scriptOutputMode = ScriptOutputMode::DISCARD
+	) {
+	}
+
+	public function create(Expression $expression, string $command):Job {
+		return new Job($expression, $command, $this->scriptOutputMode);
 	}
 }

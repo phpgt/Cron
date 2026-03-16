@@ -4,8 +4,7 @@
 
 	"require": {
 		"php": ">=8.1",
-		"phpgt/cli": "1.*",
-		"dragonmantank/cron-expression": "^2.2"
+		"phpgt/cli": "1.*"
 	},
 	"require-dev": {
 		"phpstan/phpstan": "^1.10",
@@ -28,6 +27,20 @@
 	"bin": [
 		"bin/cron"
 	],
+
+	"scripts": {
+		"phpunit": "vendor/bin/phpunit --configuration phpunit.xml",
+		"phpunit:coverage": "XDEBUG_MODE=coverage vendor/bin/phpunit --configuration phpunit.xml --coverage-text",
+		"phpstan": "vendor/bin/phpstan analyse --level 6 src",
+		"phpcs": "vendor/bin/phpcs src --standard=phpcs.xml",
+		"phpmd": "vendor/bin/phpmd src/ text phpmd.xml",
+		"test": [
+			"@phpunit",
+			"@phpstan",
+			"@phpcs",
+			"@phpmd"
+		]
+	},
 
 	"funding": [
 		{

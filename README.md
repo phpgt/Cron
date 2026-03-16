@@ -10,7 +10,7 @@ Define background jobs in standard crontab format and the Cron Runner will execu
 <a href="https://app.codacy.com/gh/PhpGt/Cron" target="_blank">
 	<img src="https://badge.status.php.gt/cron-quality.svg" alt="Code quality" />
 </a>
-<a href="https://app.codacy.com/gh/PhpGt/Cron" target="_blank">
+<a href="https://app.codecov.io/gh/PhpGt/Cron" target="_blank">
 	<img src="https://badge.status.php.gt/cron-coverage.svg" alt="Code coverage" />
 </a>
 <a href="https://packagist.org/packages/PhpGt/Cron" target="_blank">
@@ -34,6 +34,10 @@ Define background jobs in standard crontab format and the Cron Runner will execu
 Start the Runner: `vendor/bin/cron`.
 
 If you're using [WebEngine](https://php.gt/webengine), the Cron Runner is automatically started for you by running `gt run`.
+
+## Examples
+
+There is an [example](example/README.md) directory with numbered scripts that can be run directly with `php`. Each one embeds its own crontab string so the schedule and output stay together.
 
 # Proudly sponsored by
 

@@ -8,6 +8,7 @@ use Gt\Cli\Parameter\NamedParameter;
 use Gt\Cli\Parameter\Parameter;
 use Gt\Cli\Stream;
 use Gt\Cron\CronException;
+use Gt\Cron\CrontabNotFoundException;
 use Gt\Cron\FunctionExecutionException;
 use Gt\Cron\RunnerFactory;
 use Gt\Cron\ScriptExecutionException;
@@ -22,10 +23,14 @@ class RunCommand extends Command {
 		]);
 
 		try {
-			$runner = RunnerFactory::createForProject(
+			$runner = (new RunnerFactory())->createForProject(
 				getcwd(),
 				$filename
 			);
+		}
+		catch(CrontabNotFoundException) {
+			$this->stream->writeLine("Skipping cron as there is no crontab file.");
+			return;
 		}
 		catch(CronException $exception) {
 			$this->stream->writeLine(

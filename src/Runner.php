@@ -1,7 +1,6 @@
 <?php
 namespace Gt\Cron;
 
-use Cron\CronExpression;
 use DateTime;
 use InvalidArgumentException;
 
@@ -20,50 +19,19 @@ class Runner {
 		QueueRepository $queueRepository,
 		string $contents,
 		?DateTime $now = null,
+		?ExpressionFactory $expressionFactory = null,
+		?CrontabParser $crontabParser = null,
 	) {
 		$this->queue = call_user_func(
 			[$queueRepository, "createAtTime"],
 			$now ?? new DateTime()
 		);
-
-		$this->numJobs = 0;
-
-		foreach(explode("\n", $contents) as $line) {
-			$line = trim($line);
-			if(strlen($line) === 0) {
-				continue;
-			}
-
-			if($line[0] === "#") {
-				continue;
-			}
-
-			preg_match(
-				"/(?P<crontab>\S+\s\S+\s\S+\s\S+\s\S+)\s(?P<command>.+)/",
-				$line,
-				$matches
-			);
-
-			$crontab = $matches["crontab"] ?? null;
-			$command = $matches["command"] ?? null;
-
-			$crontab = trim($crontab);
-			$command = trim($command);
-
-			try {
-				$job = call_user_func(
-					[$jobRepository, "create"],
-					CronExpression::factory($crontab),
-					$command
-				);
-				$this->queue->add($job);
-			}
-			catch(InvalidArgumentException $exception) {
-				throw new ParseException("Invalid syntax: $line");
-			}
-
-			$this->numJobs++;
-		}
+		$crontabParser ??= new CrontabParser($expressionFactory);
+		$this->numJobs = $crontabParser->parseIntoQueue(
+			$contents,
+			$this->queue,
+			$jobRepository
+		);
 	}
 
 	public function getNumJobs():int {

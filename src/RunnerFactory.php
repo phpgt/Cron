@@ -2,7 +2,7 @@
 namespace Gt\Cron;
 
 class RunnerFactory {
-	public static function createForProject(
+	public function createForProject(
 		string $projectDirectory,
 		string $fileName = "crontab"
 	):Runner {
