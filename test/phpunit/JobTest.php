@@ -5,9 +5,12 @@ use DateInterval;
 use DateTime;
 use Gt\Cron\CronException;
 use Gt\Cron\Expression;
+use Gt\Cron\FunctionCommand;
 use Gt\Cron\FunctionExecutionException;
 use Gt\Cron\Job;
+use Gt\Cron\ScriptResult;
 use Gt\Cron\ScriptOutputMode;
+use Gt\Cron\ScriptRunner;
 use Gt\Cron\ScriptExecutionException;
 use Gt\Cron\Test\Helper\Override;
 use PHPUnit\Framework\TestCase;
@@ -107,7 +110,9 @@ class JobTest extends TestCase {
 		try {
 			$job->run();
 		}
-		catch(CronException $exception) {}
+		catch(CronException $exception) {
+			self::assertInstanceOf(CronException::class, $exception);
+		}
 
 		self::assertTrue($job->hasRun());
 	}
@@ -121,7 +126,9 @@ class JobTest extends TestCase {
 		try {
 			$job->run();
 		}
-		catch(CronException $exception) {}
+		catch(CronException $exception) {
+			self::assertInstanceOf(CronException::class, $exception);
+		}
 		$job->resetRunFlag();
 		self::assertFalse($job->hasRun());
 	}
@@ -163,7 +170,7 @@ class JobTest extends TestCase {
 		];
 		Override::setCallback("proc_open", function($command)use(&$procCalls) {
 			$procCalls["proc_open"] []= $command;
-			return null;
+			return false;
 		});
 		Override::load("proc_get_status");
 		Override::setCallback("proc_close", function()use(&$procCalls) {
@@ -174,6 +181,35 @@ class JobTest extends TestCase {
 		$job->run();
 		self::assertCount(1, $procCalls["proc_open"]);
 		self::assertCount(0, $procCalls["proc_close"]);
+	}
+
+	public function testRunUsesInjectedDependencies():void {
+		$functionCommand = $this->createMock(FunctionCommand::class);
+		$functionCommand->expects(self::once())
+			->method("isCallable")
+			->with("example")
+			->willReturn(false);
+		$functionCommand->expects(self::never())
+			->method("execute");
+
+		$scriptRunner = $this->createMock(ScriptRunner::class);
+		$scriptRunner->expects(self::once())
+			->method("run")
+			->with("example")
+			->willReturn(new ScriptResult("out", "err"));
+
+		$job = new Job(
+			$this->mockExpression(),
+			"example",
+			ScriptOutputMode::CAPTURE,
+			$functionCommand,
+			$scriptRunner
+		);
+
+		$job->run();
+
+		self::assertSame("out", $job->getStdout());
+		self::assertSame("err", $job->getStderr());
 	}
 
 	public function testRunFunctionNotExists():void {

@@ -69,11 +69,11 @@ class CronExpression implements Expression {
 			throw new InvalidArgumentException("$expression is not a valid CRON expression");
 		}
 
-		$this->minuteSet = $this->parseField($parts[0], 0, 59);
-		$this->hourSet = $this->parseField($parts[1], 0, 23);
-		[$this->dayOfMonthSet, $this->dayOfMonthWildcard] = $this->parseFieldWithWildcard($parts[2], 1, 31);
-		$this->monthSet = $this->parseField($parts[3], 1, 12, self::MONTH_MAP);
-		[$this->dayOfWeekSet, $this->dayOfWeekWildcard] = $this->parseFieldWithWildcard(
+		$this->minuteSet = $this->fieldParser->parseField($parts[0], 0, 59);
+		$this->hourSet = $this->fieldParser->parseField($parts[1], 0, 23);
+		[$this->dayOfMonthSet, $this->dayOfMonthWildcard] = $this->fieldParser->parseFieldWithWildcard($parts[2], 1, 31);
+		$this->monthSet = $this->fieldParser->parseField($parts[3], 1, 12, self::MONTH_MAP);
+		[$this->dayOfWeekSet, $this->dayOfWeekWildcard] = $this->fieldParser->parseFieldWithWildcard(
 			$parts[4],
 			0,
 			7,
@@ -145,126 +145,5 @@ class CronExpression implements Expression {
 		}
 
 		return $dayOfMonthMatches || $dayOfWeekMatches;
-	}
-
-	/**
-	 * @param array<string,int> $nameMap
-	 * @return array<int,bool>
-	 */
-	private function parseField(
-		string $field,
-		int $min,
-		int $max,
-		array $nameMap = [],
-		bool $normaliseWeekday = false
-	):array {
-		[$set] = $this->parseFieldWithWildcard($field, $min, $max, $nameMap, $normaliseWeekday);
-		return $set;
-	}
-
-	/**
-	 * @param array<string,int> $nameMap
-	 * @return array{0:array<int,bool>,1:bool}
-	 */
-	private function parseFieldWithWildcard(
-		string $field,
-		int $min,
-		int $max,
-		array $nameMap = [],
-		bool $normaliseWeekday = false
-	):array {
-		$field = strtoupper(trim($field));
-		$isWildcard = $field === "*" || $field === "?";
-		$set = [];
-
-		foreach(explode(",", $field) as $segment) {
-			$segment = trim($segment);
-			if($segment === "") {
-				throw new InvalidArgumentException("Invalid CRON field value $field");
-			}
-
-			foreach($this->expandSegment($segment, $min, $max, $nameMap, $normaliseWeekday) as $value) {
-				$set[$value] = true;
-			}
-		}
-
-		return [$set, $isWildcard];
-	}
-
-	/**
-	 * @param array<string,int> $nameMap
-	 * @return array<int>
-	 */
-	private function expandSegment(
-		string $segment,
-		int $min,
-		int $max,
-		array $nameMap,
-		bool $normaliseWeekday
-	):array {
-		$step = 1;
-		if(str_contains($segment, "/")) {
-			[$segment, $stepPart] = explode("/", $segment, 2);
-			if($stepPart === "" || !ctype_digit($stepPart) || (int)$stepPart < 1) {
-				throw new InvalidArgumentException("Invalid CRON field value $segment/$stepPart");
-			}
-			$step = (int)$stepPart;
-		}
-
-		if($segment === "*" || $segment === "?") {
-			$start = $min;
-			$end = $max;
-		}
-		elseif(str_contains($segment, "-")) {
-			[$startPart, $endPart] = explode("-", $segment, 2);
-			$start = $this->normaliseValue($startPart, $min, $max, $nameMap, $normaliseWeekday);
-			$end = $this->normaliseValue($endPart, $min, $max, $nameMap, $normaliseWeekday);
-			if($end < $start) {
-				throw new InvalidArgumentException("Invalid CRON field value $segment");
-			}
-		}
-		else {
-			$start = $this->normaliseValue($segment, $min, $max, $nameMap, $normaliseWeekday);
-			$end = $start;
-		}
-
-		$values = [];
-		for($value = $start; $value <= $end; $value += $step) {
-			array_push($values, $normaliseWeekday && $value === 7 ? 0 : $value);
-		}
-
-		return $values;
-	}
-
-	/**
-	 * @param array<string,int> $nameMap
-	 */
-	private function normaliseValue(
-		string $value,
-		int $min,
-		int $max,
-		array $nameMap,
-		bool $normaliseWeekday
-	):int {
-		$value = strtoupper(trim($value));
-
-		if(isset($nameMap[$value])) {
-			return $nameMap[$value];
-		}
-
-		if(!preg_match('/^\d+$/', $value)) {
-			throw new InvalidArgumentException("Invalid CRON field value $value");
-		}
-
-		$intValue = (int)$value;
-		if($normaliseWeekday && $intValue === 7) {
-			return 7;
-		}
-
-		if($intValue < $min || $intValue > $max) {
-			throw new InvalidArgumentException("Invalid CRON field value $value");
-		}
-
-		return $intValue;
 	}
 }
