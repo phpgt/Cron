@@ -58,8 +58,10 @@ class CronExpression implements Expression {
 
 	private bool $dayOfMonthWildcard;
 	private bool $dayOfWeekWildcard;
+	private CronFieldParser $fieldParser;
 
 	public function __construct(string $expression) {
+		$this->fieldParser = new CronFieldParser();
 		$expression = $this->expandNickname($expression);
 		$parts = preg_split('/\s+/', trim($expression));
 
