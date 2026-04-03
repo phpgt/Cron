@@ -5,6 +5,7 @@ use DateTime;
 
 class Job {
 	protected ScriptCommandResolver $scriptCommandResolver;
+	protected GoFunctionExecutor $goFunctionExecutor;
 	protected Expression $expression;
 	protected string $command;
 	protected bool $hasRun;
@@ -15,9 +16,12 @@ class Job {
 	public function __construct(
 		Expression $expression,
 		string $command,
-		ScriptOutputMode $scriptOutputMode = ScriptOutputMode::DISCARD
+		ScriptOutputMode $scriptOutputMode = ScriptOutputMode::DISCARD,
+		?string $projectDirectory = null,
 	) {
-		$this->scriptCommandResolver = new ScriptCommandResolver();
+		$projectDirectory = $projectDirectory ?? getcwd();
+		$this->scriptCommandResolver = new ScriptCommandResolver($projectDirectory);
+		$this->goFunctionExecutor = new GoFunctionExecutor($projectDirectory);
 		$this->expression = $expression;
 		$this->command = $command;
 		$this->hasRun = false;
@@ -58,7 +62,10 @@ class Job {
 		$this->stdout = "";
 		$this->stderr = "";
 
-		if($this->isFunction()) {
+		if($this->isCronScript()) {
+			$this->executeCronScript();
+		}
+		elseif($this->isFunction()) {
 			$this->executeFunction();
 		}
 		else {
@@ -88,6 +95,10 @@ class Job {
 
 		return strstr($command, "::")
 			|| is_callable($command);
+	}
+
+	public function isCronScript():bool {
+		return !is_null($this->scriptCommandResolver->resolveCronScript($this->command));
 	}
 
 	protected function executeFunction():void {
@@ -155,6 +166,15 @@ class Job {
 			$this->closePipes($pipes);
 			proc_close($proc);
 		}
+	}
+
+	protected function executeCronScript():void {
+		$cronScript = $this->scriptCommandResolver->resolveCronScript($this->command);
+		if(is_null($cronScript)) {
+			throw new FunctionExecutionException($this->command);
+		}
+
+		$this->goFunctionExecutor->execute($cronScript);
 	}
 
 	/** @return array<int, mixed> */

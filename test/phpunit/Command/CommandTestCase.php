@@ -55,6 +55,15 @@ class CommandTestCase extends TestCase {
 		]), $contents);
 	}
 
+	protected function writeProjectFile(string $relativePath, string $contents):void {
+		$pathName = implode(DIRECTORY_SEPARATOR, [
+			$this->projectDirectory,
+			$relativePath,
+		]);
+		mkdir(dirname($pathName), 0775, true);
+		file_put_contents($pathName, $contents);
+	}
+
 	protected function getStream():Stream {
 		$stream = new Stream(
 			"php://memory",

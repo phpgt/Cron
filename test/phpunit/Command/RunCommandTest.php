@@ -10,6 +10,116 @@ use Gt\Cron\Test\Helper\Override;
 
 /** @runTestsInSeparateProcesses  */
 class RunCommandTest extends CommandTestCase {
+	/** @dataProvider cronGoAliasData */
+	public function testRunNowCronGoScriptAlias(string $command):void {
+		$outputFile = $this->projectDirectory . "/cron-go-output.txt";
+		$this->writeProjectFile("cron/cache.php", <<<PHP
+<?php
+use Gt\Input\Input;
+
+function go(Input \$input):void {
+	file_put_contents("$outputFile", \$input->getString("type") . ":" . \$input->getString("mode"));
+}
+PHP);
+
+		$cronContents = <<<CRON
+* * * * * $command
+CRON;
+		$this->writeCronContents($cronContents);
+		$stream = $this->getStream();
+		chdir($this->projectDirectory);
+
+		$args = new ArgumentValueList();
+		$args->set("once");
+		$commandInstance = new RunCommand();
+		$commandInstance->setStream($stream);
+		$commandInstance->run($args);
+
+		self::assertSame("db:daily", file_get_contents($outputFile));
+	}
+
+	public static function cronGoAliasData():array {
+		return [
+			["cache?type=db&mode=daily"],
+			["/cache?type=db&mode=daily"],
+			["cache.php?type=db&mode=daily"],
+			["cron/cache?type=db&mode=daily"],
+			["/cron/cache?type=db&mode=daily"],
+		];
+	}
+
+	public function testRunNowCronGoScriptUsesProjectServiceContainer():void {
+		$outputFile = $this->projectDirectory . "/service-output.txt";
+		$this->writeProjectFile("config.default.ini", <<<INI
+[app]
+namespace = TestApp
+class_dir = src
+service_loader = ServiceContainer
+INI);
+
+		$this->writeProjectFile("src/ServiceContainer.php", <<<PHP
+<?php
+namespace TestApp;
+
+use Gt\Config\Config;
+use Gt\ServiceContainer\Container;
+use TestApp\Service\Recorder;
+
+class ServiceContainer {
+	public function __construct(
+		private readonly Config \$config,
+		private readonly Container \$container,
+	) {
+	}
+
+	public function loadRecorder():Recorder {
+		return new Recorder("$outputFile");
+	}
+}
+PHP);
+
+		$this->writeProjectFile("src/Service/Recorder.php", <<<'PHP'
+<?php
+namespace TestApp\Service;
+
+class Recorder {
+	public function __construct(
+		private readonly string $path,
+	) {
+	}
+
+	public function write(string $value):void {
+		file_put_contents($this->path, $value);
+	}
+}
+PHP);
+
+		$this->writeProjectFile("cron/cache.php", <<<'PHP'
+<?php
+use Gt\Input\Input;
+use TestApp\Service\Recorder;
+
+function go(Input $input, Recorder $recorder):void {
+	$recorder->write($input->getString("type"));
+}
+PHP);
+
+		$cronContents = <<<CRON
+* * * * * cache?type=db
+CRON;
+		$this->writeCronContents($cronContents);
+		$stream = $this->getStream();
+		chdir($this->projectDirectory);
+
+		$args = new ArgumentValueList();
+		$args->set("once");
+		$command = new RunCommand();
+		$command->setStream($stream);
+		$command->run($args);
+
+		self::assertSame("db", file_get_contents($outputFile));
+	}
+
 	public function testRunInvalidSyntax() {
 		$cronContents = <<<CRON
 * * This is wrong syntax
