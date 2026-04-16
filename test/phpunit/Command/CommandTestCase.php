@@ -60,7 +60,10 @@ class CommandTestCase extends TestCase {
 			$this->projectDirectory,
 			$relativePath,
 		]);
-		mkdir(dirname($pathName), 0775, true);
+		$directory = dirname($pathName);
+		if(!is_dir($directory)) {
+			mkdir($directory, 0775, true);
+		}
 		file_put_contents($pathName, $contents);
 	}
 
