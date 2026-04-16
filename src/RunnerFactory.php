@@ -15,7 +15,7 @@ class RunnerFactory {
 			throw new CrontabNotFoundException("crontab file not found at $crontabPath");
 		}
 
-		$jobFactory = new JobRepository();
+		$jobFactory = new JobRepository(projectDirectory: $projectDirectory);
 		return new Runner(
 			$jobFactory,
 			new QueueRepository(),

@@ -15,7 +15,7 @@ use Gt\Cron\ScriptExecutionException;
 
 class RunCommand extends Command {
 	/** @SuppressWarnings(PHPMD.ExitExpression) */
-	public function run(?ArgumentValueList $arguments = null):void {
+	public function run(?ArgumentValueList $arguments = null):int {
 		$filename = $arguments->get("file", "crontab");
 		$filePath = implode(DIRECTORY_SEPARATOR, [
 			getcwd(),
@@ -30,14 +30,14 @@ class RunCommand extends Command {
 		}
 		catch(CrontabNotFoundException) {
 			$this->stream->writeLine("Skipping cron as there is no crontab file.");
-			return;
+			return 1;
 		}
 		catch(CronException $exception) {
 			$this->stream->writeLine(
 				$exception->getMessage(),
 				Stream::ERROR
 			);
-			return;
+			return 2;
 		}
 
 		if($arguments->contains("validate")) {
@@ -69,6 +69,8 @@ class RunCommand extends Command {
 				Stream::ERROR
 			);
 		}
+
+		return 0;
 	}
 
 	/**

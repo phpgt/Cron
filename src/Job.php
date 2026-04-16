@@ -4,6 +4,8 @@ namespace Gt\Cron;
 use DateTime;
 
 class Job {
+	protected ScriptCommandResolver $scriptCommandResolver;
+	protected GoFunctionExecutor $goFunctionExecutor;
 	protected Expression $expression;
 	protected string $command;
 	protected bool $hasRun;
@@ -16,9 +18,24 @@ class Job {
 		Expression $expression,
 		string $command,
 		ScriptOutputMode $scriptOutputMode = ScriptOutputMode::DISCARD,
-		?FunctionCommand $functionCommand = null,
+		string|FunctionCommand|null $projectDirectoryOrFunctionCommand = null,
 		?ScriptRunner $scriptRunner = null,
+		?FunctionCommand $functionCommand = null,
+		?GoFunctionExecutor $goFunctionExecutor = null,
+		?ScriptCommandResolver $scriptCommandResolver = null,
 	) {
+		$projectDirectory = null;
+		if($projectDirectoryOrFunctionCommand instanceof FunctionCommand) {
+			$functionCommand = $projectDirectoryOrFunctionCommand;
+		}
+		else {
+			$projectDirectory = $projectDirectoryOrFunctionCommand ?? getcwd();
+		}
+
+		$this->scriptCommandResolver = $scriptCommandResolver
+			?? new ScriptCommandResolver($projectDirectory ?? "");
+		$this->goFunctionExecutor = $goFunctionExecutor
+			?? new GoFunctionExecutor($projectDirectory ?? getcwd());
 		$this->expression = $expression;
 		$this->command = $command;
 		$this->hasRun = false;
@@ -60,6 +77,11 @@ class Job {
 		$this->stdout = "";
 		$this->stderr = "";
 
+		if($this->isCronScript()) {
+			$this->executeCronScript();
+			return;
+		}
+
 		if($this->functionCommand->isCallable($this->command)) {
 			$this->functionCommand->execute($this->command);
 			return;
@@ -80,5 +102,18 @@ class Job {
 
 	public function isFunction():bool {
 		return $this->functionCommand->isCallable($this->command);
+	}
+
+	public function isCronScript():bool {
+		return !is_null($this->scriptCommandResolver->resolveCronScript($this->command));
+	}
+
+	protected function executeCronScript():void {
+		$cronScript = $this->scriptCommandResolver->resolveCronScript($this->command);
+		if(is_null($cronScript)) {
+			throw new FunctionExecutionException($this->command);
+		}
+
+		$this->goFunctionExecutor->execute($cronScript);
 	}
 }

@@ -35,6 +35,6 @@ class FunctionCommand {
 
 		$argsString = substr($command, $bracketPos);
 		$argsString = trim($argsString, " ();");
-		return str_getcsv($argsString);
+		return str_getcsv($argsString, ",", "\"", "\\");
 	}
 }
