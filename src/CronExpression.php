@@ -102,8 +102,9 @@ class CronExpression implements Expression {
 			$this->hasSecondPrecision() ? (int)$candidate->format("s") : 0
 		);
 		$candidate->modify($this->hasSecondPrecision() ? "+1 second" : "+1 minute");
+		$maxLookaheadSteps = $this->getMaxLookaheadSteps();
 
-		for($i = 0; $i < $this->getMaxLookaheadSteps(); $i++) {
+		for($i = 0; $i < $maxLookaheadSteps; $i++) {
 			if($this->matches($candidate)) {
 				return clone $candidate;
 			}
@@ -127,7 +128,7 @@ class CronExpression implements Expression {
 		$month = (int)$candidate->format("n");
 		$dayOfWeek = (int)$candidate->format("w");
 
-		if($this->hasSecondPrecision() && !isset($this->secondSet[$second])) {
+		if(!$this->matchesSecond($second)) {
 			return false;
 		}
 
@@ -135,6 +136,32 @@ class CronExpression implements Expression {
 			return false;
 		}
 
+		return $this->matchesDay($dayOfMonth, $dayOfWeek);
+	}
+
+	/** @return array<int,bool> */
+	private function parseMinuteField(string $field):array {
+		if(!str_ends_with(strtolower(trim($field)), "s")) {
+			return $this->fieldParser->parseField($field, 0, 59);
+		}
+
+		$this->secondSet = $this->fieldParser->parseField(substr(trim($field), 0, -1), 0, 59);
+		return $this->fieldParser->parseField("*", 0, 59);
+	}
+
+	private function hasSecondPrecision():bool {
+		return !is_null($this->secondSet);
+	}
+
+	private function matchesSecond(int $second):bool {
+		if(!$this->hasSecondPrecision()) {
+			return true;
+		}
+
+		return isset($this->secondSet[$second]);
+	}
+
+	private function matchesDay(int $dayOfMonth, int $dayOfWeek):bool {
 		$dayOfMonthMatches = isset($this->dayOfMonthSet[$dayOfMonth]);
 		$dayOfWeekMatches = isset($this->dayOfWeekSet[$dayOfWeek]);
 
@@ -151,19 +178,6 @@ class CronExpression implements Expression {
 		}
 
 		return $dayOfMonthMatches || $dayOfWeekMatches;
-	}
-
-	private function parseMinuteField(string $field):array {
-		if(!str_ends_with(strtolower(trim($field)), "s")) {
-			return $this->fieldParser->parseField($field, 0, 59);
-		}
-
-		$this->secondSet = $this->fieldParser->parseField(substr(trim($field), 0, -1), 0, 59);
-		return $this->fieldParser->parseField("*", 0, 59);
-	}
-
-	private function hasSecondPrecision():bool {
-		return !is_null($this->secondSet);
 	}
 
 	private function getMaxLookaheadSteps():int {
