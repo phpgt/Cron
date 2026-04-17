@@ -26,6 +26,22 @@ class CronExpressionTest extends TestCase {
 		self::assertFalse($expression->isDue(new DateTime("2026-03-14 09:30:00")));
 	}
 
+	public function testSecondStepSyntaxIsDueWithinMatchingMinute():void {
+		$expression = new CronExpression("*/10s * * * *");
+
+		self::assertTrue($expression->isDue(new DateTime("2026-03-11 12:34:20")));
+		self::assertFalse($expression->isDue(new DateTime("2026-03-11 12:34:25")));
+	}
+
+	public function testSecondStepSyntaxRespectsOtherFields():void {
+		$expression = new CronExpression("*/15s 9-17 * * 1,3,5");
+
+		self::assertTrue($expression->isDue(new DateTime("2026-03-13 09:30:15")));
+		self::assertFalse($expression->isDue(new DateTime("2026-03-13 09:30:10")));
+		self::assertFalse($expression->isDue(new DateTime("2026-03-14 09:30:15")));
+		self::assertFalse($expression->isDue(new DateTime("2026-03-13 08:30:15")));
+	}
+
 	public function testMonthAndWeekdayNames():void {
 		$expression = new CronExpression("0 22 * JAN MON-FRI");
 
@@ -48,8 +64,30 @@ class CronExpressionTest extends TestCase {
 		self::assertSame("2026-03-12 00:00:00", $nextRunDate->format("Y-m-d H:i:s"));
 	}
 
+	public function testGetNextRunDateUsesSecondPrecisionForSecondStepSyntax():void {
+		$expression = new CronExpression("*/10s * * * *");
+		$nextRunDate = $expression->getNextRunDate(new DateTime("2026-03-11 12:34:25"));
+		self::assertSame("2026-03-11 12:34:30", $nextRunDate->format("Y-m-d H:i:s"));
+	}
+
+	public function testGetNextRunDateCanRollIntoNextMinuteForSecondStepSyntax():void {
+		$expression = new CronExpression("*/10s * * * *");
+		$nextRunDate = $expression->getNextRunDate(new DateTime("2026-03-11 12:34:58"));
+		self::assertSame("2026-03-11 12:35:00", $nextRunDate->format("Y-m-d H:i:s"));
+	}
+
 	public function testInvalidFieldThrows():void {
 		self::expectException(InvalidArgumentException::class);
 		new CronExpression("* * * ABC *");
+	}
+
+	public function testInvalidSecondStepZeroThrows():void {
+		self::expectException(InvalidArgumentException::class);
+		new CronExpression("*/0s * * * *");
+	}
+
+	public function testInvalidSecondStepNonNumericThrows():void {
+		self::expectException(InvalidArgumentException::class);
+		new CronExpression("*/xs * * * *");
 	}
 }
