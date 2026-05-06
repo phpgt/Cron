@@ -1,5 +1,5 @@
 <?php
-namespace Gt\Cron;
+namespace GT\Cron;
 
 readonly class ProjectAutoloader {
 	public function __construct(

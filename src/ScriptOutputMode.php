@@ -1,5 +1,5 @@
 <?php
-namespace Gt\Cron;
+namespace GT\Cron;
 
 enum ScriptOutputMode:string {
 	case DISCARD = "discard";

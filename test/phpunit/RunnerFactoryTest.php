@@ -1,9 +1,9 @@
 <?php
-namespace Gt\Cron\Test;
+namespace GT\Cron\Test;
 
-use Gt\Cron\CrontabNotFoundException;
-use Gt\Cron\Runner;
-use Gt\Cron\RunnerFactory;
+use GT\Cron\CrontabNotFoundException;
+use GT\Cron\Runner;
+use GT\Cron\RunnerFactory;
 use PHPUnit\Framework\TestCase;
 
 class RunnerFactoryTest extends TestCase {

@@ -1,9 +1,9 @@
 <?php
-namespace Gt\Cron\Test;
+namespace GT\Cron\Test;
 
-use Gt\Cron\FunctionCommand;
-use Gt\Cron\FunctionExecutionException;
-use Gt\Cron\Test\Helper\ExampleClass;
+use GT\Cron\FunctionCommand;
+use GT\Cron\FunctionExecutionException;
+use GT\Cron\Test\Helper\ExampleClass;
 use PHPUnit\Framework\TestCase;
 
 class FunctionCommandTest extends TestCase {
@@ -17,7 +17,7 @@ class FunctionCommandTest extends TestCase {
 		$command = new FunctionCommand();
 
 		self::assertTrue($command->isCallable(
-			"Gt\\Cron\\Test\\Helper\\ExampleClass::doSomething"
+			"GT\\Cron\\Test\\Helper\\ExampleClass::doSomething"
 		));
 	}
 
@@ -31,7 +31,7 @@ class FunctionCommandTest extends TestCase {
 		$command = new FunctionCommand();
 
 		$command->execute(
-			'Gt\\Cron\\Test\\Helper\\ExampleClass::doSomething("hello", 5)'
+			'GT\\Cron\\Test\\Helper\\ExampleClass::doSomething("hello", 5)'
 		);
 
 		self::assertSame(1, ExampleClass::$calls);
@@ -44,7 +44,7 @@ class FunctionCommandTest extends TestCase {
 
 		self::expectException(FunctionExecutionException::class);
 		$command->execute(
-			"Gt\\Cron\\Test\\Helper\\ExampleClass::doesNotExist"
+			"GT\\Cron\\Test\\Helper\\ExampleClass::doesNotExist"
 		);
 	}
 }

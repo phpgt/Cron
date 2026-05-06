@@ -1,12 +1,12 @@
 <?php
-namespace Gt\Cron\Test\Command;
+namespace GT\Cron\Test\Command;
 
 use Gt\Cli\Argument\ArgumentValueList;
 use Gt\Cli\Stream;
-use Gt\Cron\Cli\RunCommand;
-use Gt\Cron\Test\Command\CommandTestCase;
-use Gt\Cron\Test\Helper\ExampleClass;
-use Gt\Cron\Test\Helper\Override;
+use GT\Cron\Cli\RunCommand;
+use GT\Cron\Test\Command\CommandTestCase;
+use GT\Cron\Test\Helper\ExampleClass;
+use GT\Cron\Test\Helper\Override;
 
 /** @runTestsInSeparateProcesses  */
 class RunCommandTest extends CommandTestCase {
@@ -139,7 +139,7 @@ CRON;
 
 	public function testRunNowFunction() {
 		$cronContents = <<<CRON
-* * * * * \Gt\Cron\Test\Helper\ExampleClass::doSomething
+* * * * * \GT\Cron\Test\Helper\ExampleClass::doSomething
 CRON;
 		$this->writeCronContents($cronContents);
 		$stream = $this->getStream();
@@ -177,7 +177,7 @@ CRON;
 
 	public function testRunNowFunctionWithArguments() {
 		$cronContents = <<<CRON
-* * * * * \Gt\Cron\Test\Helper\ExampleClass::doSomething("a test message", 123)
+* * * * * \GT\Cron\Test\Helper\ExampleClass::doSomething("a test message", 123)
 CRON;
 		$this->writeCronContents($cronContents);
 		$stream = $this->getStream();
@@ -190,26 +190,26 @@ CRON;
 
 		self::assertEquals(
 			"",
-			\Gt\Cron\Test\Helper\ExampleClass::$message
+			\GT\Cron\Test\Helper\ExampleClass::$message
 		);
 		self::assertEquals(
 			0,
-			\Gt\Cron\Test\Helper\ExampleClass::$counter
+			\GT\Cron\Test\Helper\ExampleClass::$counter
 		);
 		$command->run($args);
 		self::assertEquals(
 			"a test message",
-			\Gt\Cron\Test\Helper\ExampleClass::$message
+			\GT\Cron\Test\Helper\ExampleClass::$message
 		);
 		self::assertEquals(
 			123,
-			\Gt\Cron\Test\Helper\ExampleClass::$counter
+			\GT\Cron\Test\Helper\ExampleClass::$counter
 		);
 	}
 
 	public function testRunNowFunctionNoSlash() {
 		$cronContents = <<<CRON
-* * * * * Gt\Cron\Test\Helper\ExampleClass::doSomething
+* * * * * GT\Cron\Test\Helper\ExampleClass::doSomething
 CRON;
 		$this->writeCronContents($cronContents);
 		$stream = $this->getStream();
@@ -222,7 +222,7 @@ CRON;
 		$command->run($args);
 		self::assertEquals(
 			1,
-			\Gt\Cron\Test\Helper\ExampleClass::$calls
+			\GT\Cron\Test\Helper\ExampleClass::$calls
 		);
 	}
 
@@ -365,7 +365,7 @@ CRON;
 	public function testRunNowScriptAndFunction() {
 		$cronContents = <<<CRON
 * * * * * /path/to/script/doSomething "a test message" 123
-* * * * * Gt\Cron\Test\Helper\ExampleClass::doSomething
+* * * * * GT\Cron\Test\Helper\ExampleClass::doSomething
 CRON;
 		$this->writeCronContents($cronContents);
 		$stream = $this->getStream();
@@ -393,7 +393,7 @@ CRON;
 		);
 		self::assertEquals(
 			1,
-			\Gt\Cron\Test\Helper\ExampleClass::$calls
+			\GT\Cron\Test\Helper\ExampleClass::$calls
 		);
 
 		$output = $this->getFullOutput($stream);
@@ -432,7 +432,7 @@ CRON;
 
 	public function testRunNowFunctionNotExists() {
 		$cronContents = <<<CRON
-* * * * * Gt\Cron\Test\Nothing::thisDoesNotExist
+* * * * * GT\Cron\Test\Nothing::thisDoesNotExist
 CRON;
 		$this->writeCronContents($cronContents);
 		$stream = $this->getStream();
@@ -448,7 +448,7 @@ CRON;
 		$command->run($args);
 
 		$this->assertStreamError(
-			"Error executing function: Gt\\Cron\\Test\\Nothing::thisDoesNotExist",
+			"Error executing function: GT\\Cron\\Test\\Nothing::thisDoesNotExist",
 			$stream
 		);
 	}

@@ -1,5 +1,5 @@
 <?php
-namespace Gt\Cron;
+namespace GT\Cron;
 
 class JobRepository {
 	public function __construct(

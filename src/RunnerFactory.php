@@ -1,5 +1,5 @@
 <?php
-namespace Gt\Cron;
+namespace GT\Cron;
 
 class RunnerFactory {
 	public function createForProject(

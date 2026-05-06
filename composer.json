@@ -18,12 +18,13 @@
 
 	"autoload": {
 		"psr-4": {
+			"GT\\Cron\\": "./src/",
 			"Gt\\Cron\\": "./src/"
 		}
 	},
 	"autoload-dev": {
 		"psr-4": {
-			"Gt\\Cron\\Test\\": "./test/phpunit/"
+			"GT\\Cron\\Test\\": "./test/phpunit/"
 		}
 	},
 
@@ -47,7 +48,7 @@
 	"funding": [
 		{
 			"type": "github",
-			"url": "https://github.com/sponsors/PhpGt"
+			"url": "https://github.com/sponsors/phpgt"
 		}
 	]
 }

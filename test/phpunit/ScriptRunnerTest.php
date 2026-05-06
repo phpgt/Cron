@@ -1,11 +1,11 @@
 <?php
-namespace Gt\Cron\Test;
+namespace GT\Cron\Test;
 
-use Gt\Cron\ResolvedScriptCommand;
-use Gt\Cron\ScriptExecutionException;
-use Gt\Cron\ScriptOutputMode;
-use Gt\Cron\ScriptRunner;
-use Gt\Cron\Test\Helper\Override;
+use GT\Cron\ResolvedScriptCommand;
+use GT\Cron\ScriptExecutionException;
+use GT\Cron\ScriptOutputMode;
+use GT\Cron\ScriptRunner;
+use GT\Cron\Test\Helper\Override;
 use PHPUnit\Framework\TestCase;
 
 class ScriptRunnerTest extends TestCase {

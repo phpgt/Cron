@@ -1,5 +1,5 @@
 <?php
-namespace Gt\Cron;
+namespace GT\Cron;
 
 class ResolvedScriptCommand {
 	public function resolve(string $command):string {

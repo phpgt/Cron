@@ -1,5 +1,5 @@
 <?php
-namespace Gt\Cron;
+namespace GT\Cron;
 
 class FunctionCommand {
 	public function isCallable(string $command):bool {

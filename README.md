@@ -17,7 +17,7 @@ Define background jobs in standard crontab format and the Cron Runner will execu
 	<img src="https://badge.status.php.gt/cron-version.svg" alt="Current version" />
 </a>
 <a href="http://www.php.gt/cron" target="_blank">
-	<img src="https://badge.status.php.gt/cron-docs.svg" alt="PHP.Gt/Cron documentation" />
+	<img src="https://badge.status.php.gt/cron-docs.svg" alt="PHP.GT/Cron documentation" />
 </a>
 
 ## Example usage

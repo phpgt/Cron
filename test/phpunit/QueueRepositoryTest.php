@@ -1,8 +1,8 @@
 <?php
-namespace Gt\Cron\Test;
+namespace GT\Cron\Test;
 
 use DateTime;
-use Gt\Cron\QueueRepository;
+use GT\Cron\QueueRepository;
 use PHPUnit\Framework\TestCase;
 
 class QueueRepositoryTest extends TestCase {

@@ -1,7 +1,7 @@
 <?php
-namespace Gt\Cron\Test;
+namespace GT\Cron\Test;
 
-use Gt\Cron\ResolvedScriptCommand;
+use GT\Cron\ResolvedScriptCommand;
 use PHPUnit\Framework\TestCase;
 
 class ResolvedScriptCommandTest extends TestCase {
