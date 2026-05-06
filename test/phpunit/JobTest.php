@@ -1,18 +1,18 @@
 <?php
-namespace Gt\Cron\Test;
+namespace GT\Cron\Test;
 
 use DateInterval;
 use DateTime;
-use Gt\Cron\CronException;
-use Gt\Cron\Expression;
-use Gt\Cron\FunctionCommand;
-use Gt\Cron\FunctionExecutionException;
-use Gt\Cron\Job;
-use Gt\Cron\ScriptResult;
-use Gt\Cron\ScriptOutputMode;
-use Gt\Cron\ScriptRunner;
-use Gt\Cron\ScriptExecutionException;
-use Gt\Cron\Test\Helper\Override;
+use GT\Cron\CronException;
+use GT\Cron\Expression;
+use GT\Cron\FunctionCommand;
+use GT\Cron\FunctionExecutionException;
+use GT\Cron\Job;
+use GT\Cron\ScriptResult;
+use GT\Cron\ScriptOutputMode;
+use GT\Cron\ScriptRunner;
+use GT\Cron\ScriptExecutionException;
+use GT\Cron\Test\Helper\Override;
 use PHPUnit\Framework\TestCase;
 
 class JobTest extends TestCase {
@@ -213,7 +213,7 @@ class JobTest extends TestCase {
 	}
 
 	public function testRunFunctionNotExists():void {
-		$command = "Gt\\Cron\\Test\\Nothing::thisDoesNotExist";
+		$command = "GT\\Cron\\Test\\Nothing::thisDoesNotExist";
 		$job = new Job(
 			$this->mockExpression(),
 			$command

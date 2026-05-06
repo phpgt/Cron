@@ -1,9 +1,9 @@
 <?php
-namespace Gt\Cron\Test;
+namespace GT\Cron\Test;
 
-use Gt\Cron\Expression;
-use Gt\Cron\Job;
-use Gt\Cron\JobRepository;
+use GT\Cron\Expression;
+use GT\Cron\Job;
+use GT\Cron\JobRepository;
 use PHPUnit\Framework\TestCase;
 
 class JobRepositoryTest extends TestCase {

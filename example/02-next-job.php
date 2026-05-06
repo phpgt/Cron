@@ -1,9 +1,9 @@
 <?php
-use Gt\Cron\CrontabParser;
-use Gt\Cron\ExpressionFactory;
-use Gt\Cron\JobRepository;
-use Gt\Cron\Queue;
-use Gt\Cron\ScriptOutputMode;
+use GT\Cron\CrontabParser;
+use GT\Cron\ExpressionFactory;
+use GT\Cron\JobRepository;
+use GT\Cron\Queue;
+use GT\Cron\ScriptOutputMode;
 
 chdir(dirname(__DIR__));
 require "vendor/autoload.php";

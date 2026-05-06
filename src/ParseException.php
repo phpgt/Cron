@@ -1,4 +1,4 @@
 <?php
-namespace Gt\Cron;
+namespace GT\Cron;
 
 class ParseException extends CronException {}

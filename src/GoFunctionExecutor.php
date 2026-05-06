@@ -1,5 +1,5 @@
 <?php
-namespace Gt\Cron;
+namespace GT\Cron;
 
 use Gt\Config\Config;
 use Gt\Config\ConfigFactory;
@@ -122,7 +122,7 @@ class GoFunctionExecutor {
 	/** @SuppressWarnings(PHPMD.EvalExpression) */
 	private function loadGoFunction(string $path):string {
 		$path = realpath($path) ?: $path;
-		$namespace = "Gt\\Cron\\Runtime\\File_" . md5($path);
+		$namespace = "GT\\Cron\\Runtime\\File_" . md5($path);
 		$functionName = "$namespace\\go";
 
 		if(function_exists($functionName)) {

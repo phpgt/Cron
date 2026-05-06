@@ -1,8 +1,8 @@
 <?php
-namespace Gt\Cron\Test;
+namespace GT\Cron\Test;
 
 use DateTime;
-use Gt\Cron\CronExpression;
+use GT\Cron\CronExpression;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 

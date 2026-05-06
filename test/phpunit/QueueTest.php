@@ -1,9 +1,9 @@
 <?php
-namespace Gt\Cron\Test;
+namespace GT\Cron\Test;
 
 use DateTime;
-use Gt\Cron\Job;
-use Gt\Cron\Queue;
+use GT\Cron\Job;
+use GT\Cron\Queue;
 use PHPUnit\Framework\TestCase;
 
 class QueueTest extends TestCase {

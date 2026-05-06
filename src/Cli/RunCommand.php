@@ -1,5 +1,5 @@
 <?php
-namespace Gt\Cron\Cli;
+namespace GT\Cron\Cli;
 
 use DateTime;
 use Gt\Cli\Argument\ArgumentValueList;
@@ -7,11 +7,11 @@ use Gt\Cli\Command\Command;
 use Gt\Cli\Parameter\NamedParameter;
 use Gt\Cli\Parameter\Parameter;
 use Gt\Cli\Stream;
-use Gt\Cron\CronException;
-use Gt\Cron\CrontabNotFoundException;
-use Gt\Cron\FunctionExecutionException;
-use Gt\Cron\RunnerFactory;
-use Gt\Cron\ScriptExecutionException;
+use GT\Cron\CronException;
+use GT\Cron\CrontabNotFoundException;
+use GT\Cron\FunctionExecutionException;
+use GT\Cron\RunnerFactory;
+use GT\Cron\ScriptExecutionException;
 
 class RunCommand extends Command {
 	/** @SuppressWarnings(PHPMD.ExitExpression) */

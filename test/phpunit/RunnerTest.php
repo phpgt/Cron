@@ -1,15 +1,15 @@
 <?php
-namespace Gt\Cron\Test;
+namespace GT\Cron\Test;
 
 use DateInterval;
 use DateTime;
-use Gt\Cron\Job;
-use Gt\Cron\JobRepository;
-use Gt\Cron\ParseException;
-use Gt\Cron\Queue;
-use Gt\Cron\QueueRepository;
-use Gt\Cron\Runner;
-use Gt\Cron\Test\Helper\Override;
+use GT\Cron\Job;
+use GT\Cron\JobRepository;
+use GT\Cron\ParseException;
+use GT\Cron\Queue;
+use GT\Cron\QueueRepository;
+use GT\Cron\Runner;
+use GT\Cron\Test\Helper\Override;
 use PHPUnit\Framework\TestCase;
 
 class RunnerTest extends TestCase {
