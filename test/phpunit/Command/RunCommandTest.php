@@ -137,6 +137,37 @@ CRON;
 		);
 	}
 
+	public function testExplain():void {
+		$cronContents = <<<CRON
+0 0 * * FRI /backup
+0 * * * * /clean-cache
+05 01 * * SUN#1 /first-sunday
+CRON;
+		$this->writeCronContents($cronContents);
+		$stream = $this->getStream();
+		chdir($this->projectDirectory);
+
+		$args = new ArgumentValueList();
+		$args->set("explain");
+		$command = new RunCommand();
+		$command->setStream($stream);
+		$command->run($args);
+
+		$output = $this->getFullOutput($stream);
+		self::assertStringContainsString(
+			"0 0 * * FRI /backup\t\tAt 12:00 AM, only on Friday",
+			$output
+		);
+		self::assertStringContainsString(
+			"0 * * * * /clean-cache\t\tEvery hour",
+			$output
+		);
+		self::assertStringContainsString(
+			"05 01 * * SUN#1 /first-sunday\t\tAt 01:05 AM, on the first Sunday of the month",
+			$output
+		);
+	}
+
 	public function testRunNowFunction() {
 		$cronContents = <<<CRON
 * * * * * \GT\Cron\Test\Helper\ExampleClass::doSomething

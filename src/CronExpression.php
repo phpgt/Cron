@@ -58,6 +58,8 @@ class CronExpression implements Expression {
 	private array $monthSet;
 	/** @var array<int,bool> */
 	private array $dayOfWeekSet;
+	/** @var array<int,array<int,bool>> */
+	private array $nthDayOfWeekSet = [];
 
 	private bool $dayOfMonthWildcard;
 	private bool $dayOfWeekWildcard;
@@ -76,13 +78,11 @@ class CronExpression implements Expression {
 		$this->hourSet = $this->fieldParser->parseField($parts[1], 0, 23);
 		[$this->dayOfMonthSet, $this->dayOfMonthWildcard] = $this->fieldParser->parseFieldWithWildcard($parts[2], 1, 31);
 		$this->monthSet = $this->fieldParser->parseField($parts[3], 1, 12, self::MONTH_MAP);
-		[$this->dayOfWeekSet, $this->dayOfWeekWildcard] = $this->fieldParser->parseFieldWithWildcard(
-			$parts[4],
-			0,
-			7,
-			self::WEEKDAY_MAP,
-			true
-		);
+		[
+			$this->dayOfWeekSet,
+			$this->dayOfWeekWildcard,
+			$this->nthDayOfWeekSet
+		] = $this->parseDayOfWeekField($parts[4]);
 	}
 
 	public function isDue(DateTime $now):bool {
@@ -163,7 +163,8 @@ class CronExpression implements Expression {
 
 	private function matchesDay(int $dayOfMonth, int $dayOfWeek):bool {
 		$dayOfMonthMatches = isset($this->dayOfMonthSet[$dayOfMonth]);
-		$dayOfWeekMatches = isset($this->dayOfWeekSet[$dayOfWeek]);
+		$dayOfWeekMatches = isset($this->dayOfWeekSet[$dayOfWeek])
+			|| $this->matchesNthDayOfWeek($dayOfMonth, $dayOfWeek);
 
 		if($this->dayOfMonthWildcard && $this->dayOfWeekWildcard) {
 			return true;
@@ -178,6 +179,85 @@ class CronExpression implements Expression {
 		}
 
 		return $dayOfMonthMatches || $dayOfWeekMatches;
+	}
+
+	/**
+	 * @return array{0:array<int,bool>,1:bool,2:array<int,array<int,bool>>}
+	 */
+	private function parseDayOfWeekField(string $field):array {
+		$field = trim($field);
+		$isWildcard = $field === "*" || $field === "?";
+		$standardSegmentList = [];
+		$nthDayOfWeekSet = [];
+
+		foreach(explode(",", $field) as $segment) {
+			$segment = trim($segment);
+			if($segment === "") {
+				throw new InvalidArgumentException("Invalid CRON field value $field");
+			}
+
+			if(!str_contains($segment, "#")) {
+				$standardSegmentList []= $segment;
+				continue;
+			}
+
+			[$dayOfWeek, $nth] = $this->parseNthDayOfWeekSegment($segment);
+			$nthDayOfWeekSet[$dayOfWeek][$nth] = true;
+		}
+
+		$dayOfWeekSet = [];
+		if($standardSegmentList) {
+			[$dayOfWeekSet] = $this->fieldParser->parseFieldWithWildcard(
+				implode(",", $standardSegmentList),
+				0,
+				7,
+				self::WEEKDAY_MAP,
+				true
+			);
+		}
+
+		return [$dayOfWeekSet, $isWildcard, $nthDayOfWeekSet];
+	}
+
+	/** @return array{0:int,1:int} */
+	private function parseNthDayOfWeekSegment(string $segment):array {
+		[$dayOfWeekPart, $nthPart] = explode("#", strtoupper($segment), 2);
+		if($dayOfWeekPart === ""
+		|| $nthPart === ""
+		|| str_contains($nthPart, "#")
+		|| !ctype_digit($nthPart)) {
+			throw new InvalidArgumentException("Invalid CRON field value $segment");
+		}
+
+		$nth = (int)$nthPart;
+		if($nth < 1 || $nth > 5) {
+			throw new InvalidArgumentException("Invalid CRON field value $segment");
+		}
+
+		$dayOfWeekSet = $this->fieldParser->parseField(
+			$dayOfWeekPart,
+			0,
+			7,
+			self::WEEKDAY_MAP,
+			true
+		);
+		if(count($dayOfWeekSet) !== 1) {
+			throw new InvalidArgumentException("Invalid CRON field value $segment");
+		}
+
+		return [array_key_first($dayOfWeekSet), $nth];
+	}
+
+	private function matchesNthDayOfWeek(
+		int $dayOfMonth,
+		int $dayOfWeek
+	):bool {
+		if(!isset($this->nthDayOfWeekSet[$dayOfWeek])) {
+			return false;
+		}
+
+		$nth = intdiv($dayOfMonth - 1, 7) + 1;
+		return isset($this->nthDayOfWeekSet[$dayOfWeek][$nth]);
 	}
 
 	private function getMaxLookaheadSteps():int {
