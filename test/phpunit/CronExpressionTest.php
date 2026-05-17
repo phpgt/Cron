@@ -64,12 +64,39 @@ class CronExpressionTest extends TestCase {
 		self::assertSame("2026-03-12 00:00:00", $nextRunDate->format("Y-m-d H:i:s"));
 	}
 
+	public function testNicknameExpansionIsCaseInsensitive():void {
+		$expression = new CronExpression("@DAILY");
+		$nextRunDate = $expression->getNextRunDate(new DateTime("2026-03-11 12:34:00"));
+		self::assertSame("2026-03-12 00:00:00", $nextRunDate->format("Y-m-d H:i:s"));
+	}
+
 	public function testNthWeekdayOfMonth():void {
 		$expression = new CronExpression("05 01 * * SUN#1");
 
 		self::assertTrue($expression->isDue(new DateTime("2026-03-01 01:05:00")));
 		self::assertFalse($expression->isDue(new DateTime("2026-03-08 01:05:00")));
 		self::assertFalse($expression->isDue(new DateTime("2026-03-01 01:06:00")));
+	}
+
+	public function testNthWeekdayOfMonthSupportsSundaySeven():void {
+		$expression = new CronExpression("05 01 * * 7#1");
+
+		self::assertTrue($expression->isDue(new DateTime("2026-03-01 01:05:00")));
+		self::assertFalse($expression->isDue(new DateTime("2026-03-08 01:05:00")));
+	}
+
+	public function testNthWeekdayCanBeCombinedWithStandardWeekdaySyntax():void {
+		$expression = new CronExpression("0 0 * * SUN#1,FRI");
+
+		self::assertTrue($expression->isDue(new DateTime("2026-03-01 00:00:00")));
+		self::assertTrue($expression->isDue(new DateTime("2026-03-13 00:00:00")));
+		self::assertFalse($expression->isDue(new DateTime("2026-03-12 00:00:00")));
+	}
+
+	public function testGetNextRunDateForNthWeekdaySchedule():void {
+		$expression = new CronExpression("05 01 * * SUN#1");
+		$nextRunDate = $expression->getNextRunDate(new DateTime("2026-03-01 01:05:00"));
+		self::assertSame("2026-04-05 01:05:00", $nextRunDate->format("Y-m-d H:i:s"));
 	}
 
 	public function testGetNextRunDateUsesSecondPrecisionForSecondStepSyntax():void {

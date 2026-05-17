@@ -117,7 +117,7 @@ class CronExpression implements Expression {
 
 	private function expandNickname(string $expression):string {
 		$expression = trim($expression);
-		return self::NICKNAME_MAP[$expression] ?? $expression;
+		return self::NICKNAME_MAP[strtolower($expression)] ?? $expression;
 	}
 
 	private function matches(DateTime $candidate):bool {

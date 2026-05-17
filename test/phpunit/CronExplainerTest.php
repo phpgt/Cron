@@ -235,6 +235,14 @@ class CronExplainerTest extends TestCase {
 				"0 0 * * FRI#5",
 				"At 12:00 AM, on the fifth Friday of the month",
 			],
+			"sunday seven" => [
+				"05 01 * * 7#1",
+				"At 01:05 AM, on the first Sunday of the month",
+			],
+			"mixed nth and standard weekday syntax" => [
+				"0 0 * * SUN#1,FRI",
+				"At 12:00 AM, on the first Sunday of the month and Friday",
+			],
 		];
 	}
 

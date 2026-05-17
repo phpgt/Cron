@@ -199,8 +199,7 @@ class CronExplainer {
 		string $dayOfWeek,
 		?string $monthPhrase
 	):string {
-		$phrase = "on the " . $this->formatNthDayOfWeek($dayOfWeek)
-			. " of the month";
+		$phrase = "on " . $this->formatNthDayOfWeekList($dayOfWeek);
 		return $monthPhrase ? "$phrase in $monthPhrase" : $phrase;
 	}
 
@@ -226,6 +225,22 @@ class CronExplainer {
 		[$day, $nth] = explode("#", strtoupper($dayOfWeek), 2);
 		$ordinal = self::ORDINAL_MAP[(int)$nth] ?? "{$nth}th";
 		return $ordinal . " " . $this->formatDayOfWeek($day);
+	}
+
+	private function formatNthDayOfWeekList(string $dayOfWeek):string {
+		$phraseList = [];
+
+		foreach(explode(",", $dayOfWeek) as $part) {
+			if(str_contains($part, "#")) {
+				$phraseList []= "the " . $this->formatNthDayOfWeek($part)
+					. " of the month";
+				continue;
+			}
+
+			$phraseList []= $this->formatDayOfWeek($part);
+		}
+
+		return $this->formatList($phraseList);
 	}
 
 	private function formatDayOfWeek(string $dayOfWeek):string {
