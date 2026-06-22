@@ -450,6 +450,51 @@ CRON;
 		self::assertSame("qualified", file_get_contents($outputFile));
 	}
 
+	public function testRunNowCronGoScriptUseStatementsOverrideInternalAliases():void {
+		$outputFile = $this->projectDirectory . "/alias-output.txt";
+		$this->writeProjectFile("config.ini", <<<'INI'
+		[app]
+		namespace = TestApp
+		class_dir = src
+		INI);
+
+		$this->writeProjectFile("src/XMLDocument.php", <<<PHP
+		<?php
+		namespace TestApp;
+		
+		class XMLDocument {
+			public function write():void {
+				file_put_contents("$outputFile", "project");
+			}
+		}
+		PHP);
+
+		$this->writeProjectFile("cron/cache.php", <<<'PHP'
+		<?php
+		use TestApp\XMLDocument;
+		
+		function go():void {
+			$document = new XMLDocument();
+			$document->write();
+		}
+		PHP);
+
+		$cronContents = <<<CRON
+		* * * * * cache
+		CRON;
+		$this->writeCronContents($cronContents);
+		$stream = $this->getStream();
+		chdir($this->projectDirectory);
+
+		$args = new ArgumentValueList();
+		$args->set("once");
+		$command = new RunCommand();
+		$command->setStream($stream);
+		$command->run($args);
+
+		self::assertSame("project", file_get_contents($outputFile));
+	}
+
 	public function testRunInvalidSyntax() {
 		$cronContents = <<<CRON
 * * This is wrong syntax

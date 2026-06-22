@@ -174,12 +174,13 @@ class GoFunctionExecutor {
 		$code = preg_replace('/\?>\s*$/', '', $code, 1) ?? $code;
 		$code = $this->replaceMagicConstants($code, $path);
 
-		eval("namespace $namespace;\n" . $this->getInternalAliasStatements() . $code);
+		eval("namespace $namespace;\n" . $this->getInternalAliasStatements($code) . $code);
 		return $functionName;
 	}
 
-	private function getInternalAliasStatements():string {
+	private function getInternalAliasStatements(string $code):string {
 		$aliasList = [];
+		$existingAliasList = $this->getExistingUseAliasList($code);
 		foreach([
 			...get_declared_classes(),
 			...get_declared_interfaces(),
@@ -191,11 +192,41 @@ class GoFunctionExecutor {
 			}
 
 			$shortName = $reflection->getShortName();
+			if(isset($existingAliasList[strtolower($shortName)])) {
+				continue;
+			}
+
 			$aliasList[$shortName] = "use \\" . ltrim($className, "\\") . ";\n";
 		}
 
 		ksort($aliasList);
 		return implode("", $aliasList);
+	}
+
+	/** @return array<string, true> */
+	private function getExistingUseAliasList(string $code):array {
+		$aliasList = [];
+		preg_match_all(
+			'/^\s*use\s+(?!function\b|const\b)([^;]+);/mi',
+			$code,
+			$matches
+		);
+
+		foreach($matches[1] as $useStatement) {
+			foreach(explode(",", $useStatement) as $usePart) {
+				$usePart = trim($usePart);
+				if(preg_match('/\s+as\s+(\w+)$/i', $usePart, $aliasMatch)) {
+					$alias = $aliasMatch[1];
+				}
+				else {
+					$alias = basename(str_replace("\\", "/", $usePart));
+				}
+
+				$aliasList[strtolower($alias)] = true;
+			}
+		}
+
+		return $aliasList;
 	}
 
 	private function replaceMagicConstants(string $code, string $path):string {
