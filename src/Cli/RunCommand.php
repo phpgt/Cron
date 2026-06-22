@@ -2,6 +2,7 @@
 namespace GT\Cron\Cli;
 
 use DateTime;
+use DateTimeZone;
 use Gt\Cli\Argument\ArgumentValueList;
 use Gt\Cli\Command\Command;
 use Gt\Cli\Parameter\NamedParameter;
@@ -16,6 +17,8 @@ use GT\Cron\ScriptExecutionException;
 class RunCommand extends Command {
 	/** @SuppressWarnings(PHPMD.ExitExpression) */
 	public function run(?ArgumentValueList $arguments = null):int {
+		$this->applySystemTimezone();
+
 		$filename = $arguments->get("file", "crontab");
 		$filePath = implode(DIRECTORY_SEPARATOR, [
 			getcwd(),
@@ -85,6 +88,7 @@ class RunCommand extends Command {
 		?string $nextCommand = null
 	):void {
 		$now = new DateTime();
+		$this->stream->writeLine("Current time: " . $this->formatLocalTime($now));
 
 		if(is_null($wait)) {
 			$this->writeLine("No tasks in crontab.");
@@ -106,9 +110,9 @@ class RunCommand extends Command {
 
 		$this->stream->writeLine($message);
 
-		$message = "Next job at: " . $wait->format("H:i:s");
+		$message = "Next job at: " . $this->formatLocalTime($wait);
 		if($nextCommand) {
-			$message .= " (" . $this->displayCommandName($nextCommand) . ")";
+			$message .= " [" . $this->displayCommandName($nextCommand) . "]";
 		}
 
 		if($now->diff($wait)->format("%a") > 0) {
@@ -137,6 +141,81 @@ class RunCommand extends Command {
 
 		$script = preg_split("/\\s+/", $command, 2)[0];
 		return basename(str_replace("\\", "/", $script));
+	}
+
+	protected function applySystemTimezone():void {
+		if($timezone = $this->detectSystemTimezone()) {
+			date_default_timezone_set($timezone);
+		}
+	}
+
+	protected function detectSystemTimezone():?string {
+		return $this->detectTimezoneFromEnvironment()
+			?? $this->detectTimezoneFromLocaltime()
+			?? $this->detectTimezoneFromTimezoneFile();
+	}
+
+	protected function detectTimezoneFromEnvironment():?string {
+		$environmentTimezone = getenv("TZ");
+		if($environmentTimezone !== false
+		&& $this->isValidTimezone($environmentTimezone)) {
+			return $environmentTimezone;
+		}
+
+		return null;
+	}
+
+	protected function detectTimezoneFromLocaltime():?string {
+		$localtimePath = "/etc/localtime";
+		if(is_link($localtimePath)) {
+			$link = readlink($localtimePath);
+			if($link !== false
+			&& preg_match("#/zoneinfo/(.+)$#", $link, $match)
+			&& $this->isValidTimezone($match[1])) {
+				return $match[1];
+			}
+		}
+
+		return null;
+	}
+
+	protected function detectTimezoneFromTimezoneFile():?string {
+		$timezonePath = "/etc/timezone";
+		if(is_file($timezonePath)) {
+			$timezone = file_get_contents($timezonePath);
+			if($timezone === false) {
+				return null;
+			}
+
+			$timezone = trim($timezone);
+			if($this->isValidTimezone($timezone)) {
+				return $timezone;
+			}
+		}
+
+		return null;
+	}
+
+	protected function isValidTimezone(string $timezone):bool {
+		return in_array(
+			$timezone,
+			DateTimeZone::listIdentifiers(),
+			true
+		);
+	}
+
+	protected function formatLocalTime(DateTime $dateTime):string {
+		$local = clone $dateTime;
+		$local->setTimezone(new DateTimeZone(date_default_timezone_get()));
+		$message = $local->format("H:i:s");
+
+		if($local->getOffset() !== 0) {
+			$utc = clone $local;
+			$utc->setTimezone(new DateTimeZone("UTC"));
+			$message .= " (" . $utc->format("H:i:s") . " UTC)";
+		}
+
+		return $message;
 	}
 
 	public function getName():string {

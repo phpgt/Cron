@@ -5,6 +5,7 @@ use Gt\Config\Config;
 use Gt\Config\ConfigFactory;
 use Gt\ServiceContainer\Container;
 use Gt\ServiceContainer\Injector;
+use ReflectionClass;
 
 class GoFunctionExecutor {
 	private ?Config $config = null;
@@ -15,15 +16,49 @@ class GoFunctionExecutor {
 	}
 
 	public function execute(CronScript $cronScript):void {
-		$config = $this->loadConfig();
-		$this->setupProjectAutoloader($config);
+		$this->withProjectDirectory(function() use($cronScript):void {
+			$this->loadProjectAutoloader();
 
-		$container = $this->createContainer($config);
-		$container->set(Input::fromQuery($cronScript->getQuery()));
+			$config = $this->loadConfig();
+			$this->setupProjectAutoloader($config);
 
-		$injector = new Injector($container);
-		$functionName = $this->loadGoFunction($cronScript->getPath());
-		$injector->invoke(null, $functionName);
+			$container = $this->createContainer($config);
+			$container->set(Input::fromQuery($cronScript->getQuery()));
+
+			$injector = new Injector($container);
+			$functionName = $this->loadGoFunction($cronScript->getPath());
+			$this->withProjectDirectory(
+				fn() => $injector->invoke(null, $functionName)
+			);
+		});
+	}
+
+	private function withProjectDirectory(callable $callback):void {
+		$originalDirectory = getcwd();
+		if(is_dir($this->projectDirectory)) {
+			chdir($this->projectDirectory);
+		}
+
+		try {
+			$callback();
+		}
+		finally {
+			if($originalDirectory !== false && is_dir($originalDirectory)) {
+				chdir($originalDirectory);
+			}
+		}
+	}
+
+	private function loadProjectAutoloader():void {
+		$autoloadPath = implode(DIRECTORY_SEPARATOR, [
+			$this->projectDirectory,
+			"vendor",
+			"autoload.php",
+		]);
+
+		if(is_file($autoloadPath)) {
+			require_once $autoloadPath;
+		}
 	}
 
 	private function loadConfig():Config {
@@ -137,8 +172,86 @@ class GoFunctionExecutor {
 		$code = preg_replace('/^\xEF\xBB\xBF/', '', $code) ?? $code;
 		$code = preg_replace('/^\s*<\?(php)?/i', '', $code, 1) ?? $code;
 		$code = preg_replace('/\?>\s*$/', '', $code, 1) ?? $code;
+		$code = $this->replaceMagicConstants($code, $path);
 
-		eval("namespace $namespace;\n" . $code);
+		eval("namespace $namespace;\n" . $this->getInternalAliasStatements($code) . $code);
 		return $functionName;
+	}
+
+	private function getInternalAliasStatements(string $code):string {
+		$aliasList = [];
+		$existingAliasList = $this->getExistingUseAliasList($code);
+		foreach([
+			...get_declared_classes(),
+			...get_declared_interfaces(),
+			...get_declared_traits(),
+		] as $className) {
+			$reflection = new ReflectionClass($className);
+			if(!$reflection->isInternal()) {
+				continue;
+			}
+
+			$shortName = $reflection->getShortName();
+			if(isset($existingAliasList[strtolower($shortName)])) {
+				continue;
+			}
+
+			$aliasList[$shortName] = "use \\" . ltrim($className, "\\") . ";\n";
+		}
+
+		ksort($aliasList);
+		return implode("", $aliasList);
+	}
+
+	/** @return array<string, true> */
+	private function getExistingUseAliasList(string $code):array {
+		$aliasList = [];
+		preg_match_all(
+			'/^\s*use\s+(?!function\b|const\b)([^;]+);/mi',
+			$code,
+			$matches
+		);
+
+		foreach($matches[1] as $useStatement) {
+			foreach(explode(",", $useStatement) as $usePart) {
+				$usePart = trim($usePart);
+				if(preg_match('/\s+as\s+(\w+)$/i', $usePart, $aliasMatch)) {
+					$alias = $aliasMatch[1];
+				}
+				else {
+					$alias = basename(str_replace("\\", "/", $usePart));
+				}
+
+				$aliasList[strtolower($alias)] = true;
+			}
+		}
+
+		return $aliasList;
+	}
+
+	private function replaceMagicConstants(string $code, string $path):string {
+		$file = var_export($path, true);
+		$directory = var_export(dirname($path), true);
+		$output = "";
+
+		foreach(token_get_all("<?php\n" . $code) as $index => $token) {
+			if($index === 0) {
+				continue;
+			}
+
+			if(!is_array($token)) {
+				$output .= $token;
+				continue;
+			}
+
+			$output .= match($token[0]) {
+				T_FILE => $file,
+				T_DIR => $directory,
+				T_NAME_QUALIFIED => "\\" . $token[1],
+				default => $token[1],
+			};
+		}
+
+		return $output;
 	}
 }
