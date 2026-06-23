@@ -2,7 +2,6 @@
 namespace GT\Cron;
 
 use DateTime;
-use InvalidArgumentException;
 
 class Runner {
 	/** @var bool */
@@ -74,5 +73,10 @@ class Runner {
 
 	public function runAll():int {
 		return $this->queue->runAllJobs();
+	}
+
+	/** @param callable(string):bool $matches */
+	public function runMatching(callable $matches):int {
+		return $this->queue->runAllJobs($matches);
 	}
 }
