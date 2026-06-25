@@ -9,9 +9,12 @@ use Gt\Cli\Parameter\NamedParameter;
 use Gt\Cli\Parameter\Parameter;
 use Gt\Cli\Stream;
 use GT\Cron\CronException;
+use GT\Cron\CronExplainer;
 use GT\Cron\CrontabNotFoundException;
+use GT\Cron\CrontabParser;
 use GT\Cron\FunctionExecutionException;
 use GT\Cron\JobNotFoundException;
+use GT\Cron\ParseException;
 use GT\Cron\Runner;
 use GT\Cron\RunnerFactory;
 use GT\Cron\ScriptExecutionException;
@@ -48,6 +51,11 @@ class RunCommand extends Command {
 		if($arguments->contains("validate")) {
 			$this->writeLine("Syntax OK at $filePath");
 			exit(0);
+		}
+
+		if($arguments->contains("explain")) {
+			$this->explainCrontab(file_get_contents($filePath));
+			return 0;
 		}
 
 		$runner->setRunCallback([$this, "cronRunStep"]);
@@ -202,6 +210,28 @@ class RunCommand extends Command {
 		return basename(str_replace("\\", "/", $script));
 	}
 
+	protected function explainCrontab(string $contents):void {
+		$parser = new CrontabParser();
+		$explainer = new CronExplainer();
+
+		foreach(explode("\n", $contents) as $line) {
+			$line = trim($line);
+			if($line === "" || $line[0] === "#") {
+				continue;
+			}
+
+			try {
+				[$crontab, $command] = $parser->parseLine($line);
+				$explanation = $explainer->explain($crontab);
+			}
+			catch(ParseException) {
+				throw new ParseException("Invalid syntax: $line");
+			}
+
+			$this->writeLine("$crontab $command\t\t$explanation");
+		}
+	}
+
 	protected function applySystemTimezone():void {
 		if($timezone = $this->detectSystemTimezone()) {
 			date_default_timezone_set($timezone);
@@ -316,6 +346,12 @@ class RunCommand extends Command {
 				"validate",
 				null,
 				"Check the syntax of the crontab file without running anything."
+			),
+			new Parameter(
+				false,
+				"explain",
+				null,
+				"List the cron jobs and explain when each one will run."
 			),
 			new Parameter(
 				true,

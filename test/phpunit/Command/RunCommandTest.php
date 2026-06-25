@@ -586,6 +586,71 @@ INI);
 		);
 	}
 
+	public function testExplain():void {
+		$cronContents = <<<CRON
+0 0 * * FRI /backup
+0 * * * * /clean-cache
+05 01 * * SUN#1 /first-sunday
+CRON;
+		$this->writeCronContents($cronContents);
+		$stream = $this->getStream();
+		chdir($this->projectDirectory);
+
+		$args = new ArgumentValueList();
+		$args->set("explain");
+		$command = new RunCommand();
+		$command->setStream($stream);
+		$command->run($args);
+
+		$output = $this->getFullOutput($stream);
+		self::assertStringContainsString(
+			"0 0 * * FRI /backup\t\tAt 12:00 AM, only on Friday",
+			$output
+		);
+		self::assertStringContainsString(
+			"0 * * * * /clean-cache\t\tEvery hour",
+			$output
+		);
+		self::assertStringContainsString(
+			"05 01 * * SUN#1 /first-sunday\t\tAt 01:05 AM, on the first Sunday of the month",
+			$output
+		);
+	}
+
+	public function testExplainSkipsCommentsAndBlankLinesAndSupportsAliases():void {
+		$cronContents = <<<'CRON'
+# This line should be ignored
+
+@DAILY /backup
+*/10s * * * * /tick
+
+CRON;
+		$this->writeCronContents($cronContents);
+		$stream = $this->getStream();
+		chdir($this->projectDirectory);
+
+		$args = new ArgumentValueList();
+		$args->set("explain");
+		$command = new RunCommand();
+		$command->setStream($stream);
+		$command->run($args);
+
+		$output = $this->getFullOutput($stream);
+		self::assertStringContainsString(
+			"@DAILY /backup\t\tAt 12:00 AM",
+			$output
+		);
+		self::assertStringContainsString(
+			"*/10s * * * * /tick\t\tEvery 10 seconds",
+			$output
+		);
+		self::assertStringNotContainsString(
+			"# This line should be ignored",
+			$output
+		);
+		self::assertSame(2, substr_count($output, PHP_EOL));
+	}
+
 	public function testRunNowFunction() {
 		$cronContents = <<<CRON
 		* * * * * \GT\Cron\Test\Helper\ExampleClass::doSomething
