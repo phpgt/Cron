@@ -2,6 +2,7 @@
 namespace GT\Cron\Cli;
 
 use DateTime;
+use DateTimeZone;
 use Gt\Cli\Argument\ArgumentValueList;
 use Gt\Cli\Command\Command;
 use Gt\Cli\Parameter\NamedParameter;
@@ -12,13 +13,17 @@ use GT\Cron\CronExplainer;
 use GT\Cron\CrontabNotFoundException;
 use GT\Cron\CrontabParser;
 use GT\Cron\FunctionExecutionException;
+use GT\Cron\JobNotFoundException;
 use GT\Cron\ParseException;
+use GT\Cron\Runner;
 use GT\Cron\RunnerFactory;
 use GT\Cron\ScriptExecutionException;
 
 class RunCommand extends Command {
 	/** @SuppressWarnings(PHPMD.ExitExpression) */
 	public function run(?ArgumentValueList $arguments = null):int {
+		$this->applySystemTimezone();
+
 		$filename = $arguments->get("file", "crontab");
 		$filePath = implode(DIRECTORY_SEPARATOR, [
 			getcwd(),
@@ -55,9 +60,9 @@ class RunCommand extends Command {
 
 		$runner->setRunCallback([$this, "cronRunStep"]);
 
-		if($arguments->contains("now")) {
-			$numRunJobs = $runner->runAll();
-			$this->stream->writeLine("Ran $numRunJobs jobs now.");
+		$nowStatusCode = $this->runNowJobs($runner, $arguments);
+		if(!is_null($nowStatusCode)) {
+			return $nowStatusCode;
 		}
 
 		try {
@@ -81,6 +86,60 @@ class RunCommand extends Command {
 		return 0;
 	}
 
+	private function runNowJobs(
+		Runner $runner,
+		ArgumentValueList $arguments
+	):?int {
+		if(!$arguments->contains("now")) {
+			return null;
+		}
+
+		$jobName = $arguments->get("now")->get();
+		try {
+			if($jobName) {
+				$numRunJobs = $this->runNamedJobNow($runner, $jobName);
+				$this->stream->writeLine(
+					"Ran $numRunJobs "
+					. ($numRunJobs === 1 ? "job" : "jobs")
+					. " now."
+				);
+
+				return $arguments->contains("watch") ? null : 0;
+			}
+
+			$numRunJobs = $runner->runAll();
+			$this->stream->writeLine("Ran $numRunJobs jobs now.");
+		}
+		catch(JobNotFoundException $exception) {
+			$this->stream->writeLine(
+				$exception->getMessage(),
+				Stream::ERROR
+			);
+			return 2;
+		}
+
+		return null;
+	}
+
+	private function runNamedJobNow(
+		Runner $runner,
+		string $jobName,
+	):int {
+		$jobName = trim($jobName);
+		$numRunJobs = $runner->runMatching(
+			fn(string $command):bool => $this->displayCommandName($command)
+				=== $jobName
+		);
+
+		if(!$numRunJobs) {
+			throw new JobNotFoundException(
+				"No cron job found matching \"$jobName\" in crontab."
+			);
+		}
+
+		return $numRunJobs;
+	}
+
 	/**
 	 * @param array<string> $runCommandList
 	 * @SuppressWarnings(PHPMD.ExitExpression)
@@ -93,6 +152,7 @@ class RunCommand extends Command {
 		?string $nextCommand = null
 	):void {
 		$now = new DateTime();
+		$this->stream->writeLine("Current time: " . $this->formatLocalTime($now));
 
 		if(is_null($wait)) {
 			$this->writeLine("No tasks in crontab.");
@@ -114,9 +174,9 @@ class RunCommand extends Command {
 
 		$this->stream->writeLine($message);
 
-		$message = "Next job at: " . $wait->format("H:i:s");
+		$message = "Next job at: " . $this->formatLocalTime($wait);
 		if($nextCommand) {
-			$message .= " (" . $this->displayCommandName($nextCommand) . ")";
+			$message .= " [" . $this->displayCommandName($nextCommand) . "]";
 		}
 
 		if($now->diff($wait)->format("%a") > 0) {
@@ -144,6 +204,9 @@ class RunCommand extends Command {
 		}
 
 		$script = preg_split("/\\s+/", $command, 2)[0];
+		[$script] = explode("?", $script, 2);
+		$script = preg_replace("/\\.php$/i", "", $script);
+
 		return basename(str_replace("\\", "/", $script));
 	}
 
@@ -167,6 +230,81 @@ class RunCommand extends Command {
 
 			$this->writeLine("$crontab $command\t\t$explanation");
 		}
+	}
+
+	protected function applySystemTimezone():void {
+		if($timezone = $this->detectSystemTimezone()) {
+			date_default_timezone_set($timezone);
+		}
+	}
+
+	protected function detectSystemTimezone():?string {
+		return $this->detectTimezoneFromEnvironment()
+			?? $this->detectTimezoneFromLocaltime()
+			?? $this->detectTimezoneFromTimezoneFile();
+	}
+
+	protected function detectTimezoneFromEnvironment():?string {
+		$environmentTimezone = getenv("TZ");
+		if($environmentTimezone !== false
+		&& $this->isValidTimezone($environmentTimezone)) {
+			return $environmentTimezone;
+		}
+
+		return null;
+	}
+
+	protected function detectTimezoneFromLocaltime():?string {
+		$localtimePath = "/etc/localtime";
+		if(is_link($localtimePath)) {
+			$link = readlink($localtimePath);
+			if($link !== false
+			&& preg_match("#/zoneinfo/(.+)$#", $link, $match)
+			&& $this->isValidTimezone($match[1])) {
+				return $match[1];
+			}
+		}
+
+		return null;
+	}
+
+	protected function detectTimezoneFromTimezoneFile():?string {
+		$timezonePath = "/etc/timezone";
+		if(is_file($timezonePath)) {
+			$timezone = file_get_contents($timezonePath);
+			if($timezone === false) {
+				return null;
+			}
+
+			$timezone = trim($timezone);
+			if($this->isValidTimezone($timezone)) {
+				return $timezone;
+			}
+		}
+
+		return null;
+	}
+
+	protected function isValidTimezone(string $timezone):bool {
+		return in_array(
+			$timezone,
+			DateTimeZone::listIdentifiers(),
+			true
+		);
+	}
+
+	protected function formatLocalTime(DateTime $dateTime):string {
+		$local = clone $dateTime;
+		$local->setTimezone(new DateTimeZone(date_default_timezone_get()));
+		$message = $local->format("H:i:s");
+
+		if($local->getOffset() !== 0) {
+			$utc = clone $local;
+			$utc->setTimezone(new DateTimeZone("UTC"));
+			$message .= " (" . $utc->format("H:i:s") . " UTC)";
+		}
+
+		return $message;
 	}
 
 	public function getName():string {
@@ -219,7 +357,7 @@ class RunCommand extends Command {
 				true,
 				"now",
 				"n",
-				"Run all tasks once now. Useful when using --watch for when developing locally."
+				"Run all tasks once now, or pass a job name to run only that task. Useful when using --watch for when developing locally." // phpcs:ignore Generic.Files.LineLength.TooLong
 			)
 		];
 	}
