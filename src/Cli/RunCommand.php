@@ -11,6 +11,8 @@ use Gt\Cli\Stream;
 use GT\Cron\CronException;
 use GT\Cron\CrontabNotFoundException;
 use GT\Cron\FunctionExecutionException;
+use GT\Cron\JobNotFoundException;
+use GT\Cron\Runner;
 use GT\Cron\RunnerFactory;
 use GT\Cron\ScriptExecutionException;
 
@@ -50,9 +52,9 @@ class RunCommand extends Command {
 
 		$runner->setRunCallback([$this, "cronRunStep"]);
 
-		if($arguments->contains("now")) {
-			$numRunJobs = $runner->runAll();
-			$this->stream->writeLine("Ran $numRunJobs jobs now.");
+		$nowStatusCode = $this->runNowJobs($runner, $arguments);
+		if(!is_null($nowStatusCode)) {
+			return $nowStatusCode;
 		}
 
 		try {
@@ -74,6 +76,60 @@ class RunCommand extends Command {
 		}
 
 		return 0;
+	}
+
+	private function runNowJobs(
+		Runner $runner,
+		ArgumentValueList $arguments
+	):?int {
+		if(!$arguments->contains("now")) {
+			return null;
+		}
+
+		$jobName = $arguments->get("now")->get();
+		try {
+			if($jobName) {
+				$numRunJobs = $this->runNamedJobNow($runner, $jobName);
+				$this->stream->writeLine(
+					"Ran $numRunJobs "
+					. ($numRunJobs === 1 ? "job" : "jobs")
+					. " now."
+				);
+
+				return $arguments->contains("watch") ? null : 0;
+			}
+
+			$numRunJobs = $runner->runAll();
+			$this->stream->writeLine("Ran $numRunJobs jobs now.");
+		}
+		catch(JobNotFoundException $exception) {
+			$this->stream->writeLine(
+				$exception->getMessage(),
+				Stream::ERROR
+			);
+			return 2;
+		}
+
+		return null;
+	}
+
+	private function runNamedJobNow(
+		Runner $runner,
+		string $jobName,
+	):int {
+		$jobName = trim($jobName);
+		$numRunJobs = $runner->runMatching(
+			fn(string $command):bool => $this->displayCommandName($command)
+				=== $jobName
+		);
+
+		if(!$numRunJobs) {
+			throw new JobNotFoundException(
+				"No cron job found matching \"$jobName\" in crontab."
+			);
+		}
+
+		return $numRunJobs;
 	}
 
 	/**
@@ -140,6 +196,9 @@ class RunCommand extends Command {
 		}
 
 		$script = preg_split("/\\s+/", $command, 2)[0];
+		[$script] = explode("?", $script, 2);
+		$script = preg_replace("/\\.php$/i", "", $script);
+
 		return basename(str_replace("\\", "/", $script));
 	}
 
@@ -262,7 +321,7 @@ class RunCommand extends Command {
 				true,
 				"now",
 				"n",
-				"Run all tasks once now. Useful when using --watch for when developing locally."
+				"Run all tasks once now, or pass a job name to run only that task. Useful when using --watch for when developing locally." // phpcs:ignore Generic.Files.LineLength.TooLong
 			)
 		];
 	}

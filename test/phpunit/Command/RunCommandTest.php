@@ -6,7 +6,6 @@ use DateTimeZone;
 use Gt\Cli\Argument\ArgumentValueList;
 use Gt\Cli\Stream;
 use GT\Cron\Cli\RunCommand;
-use GT\Cron\Test\Command\CommandTestCase;
 use GT\Cron\Test\Helper\ExampleClass;
 use GT\Cron\Test\Helper\Override;
 
@@ -21,7 +20,7 @@ class RunCommandTest extends CommandTestCase {
 			$command = new RunCommand();
 			$command->setStream($stream);
 			$wait = new DateTime(
-				"2026-06-22 12:34:56",
+				date("Y-m-d") . " 12:34:56",
 				new DateTimeZone("Pacific/Chatham")
 			);
 
@@ -52,7 +51,7 @@ class RunCommandTest extends CommandTestCase {
 			$command = new RunCommand();
 			$command->setStream($stream);
 			$wait = new DateTime(
-				"2026-06-22 12:34:56",
+				date("Y-m-d") . " 12:34:56",
 				new DateTimeZone("UTC")
 			);
 
@@ -77,17 +76,18 @@ class RunCommandTest extends CommandTestCase {
 	public function testRunNowCronGoScriptAlias(string $command):void {
 		$outputFile = $this->projectDirectory . "/cron-go-output.txt";
 		$this->writeProjectFile("cron/cache.php", <<<PHP
-<?php
-use Gt\Input\Input;
-
-function go(Input \$input):void {
-	file_put_contents("$outputFile", \$input->getString("type") . ":" . \$input->getString("mode"));
-}
-PHP);
+		<?php
+		use Gt\Input\Input;
+		
+		function go(Input \$input):void {
+			file_put_contents("$outputFile", \$input->getString("type") . ":" . \$input->getString("mode"));
+		}
+		PHP);
 
 		$cronContents = <<<CRON
-* * * * * $command
-CRON;
+		* * * * * $command
+		CRON;
+
 		$this->writeCronContents($cronContents);
 		$stream = $this->getStream();
 		chdir($this->projectDirectory);
@@ -111,6 +111,79 @@ CRON;
 		];
 	}
 
+	public function testRunNowNamedCronJobRunsOnlyMatchingJob():void {
+		$this->writeProjectFile("cron/build-index.php", <<<'PHP'
+		<?php
+		function go():void {
+			file_put_contents("selected-output.txt", "build-index");
+		}
+		PHP);
+
+		$this->writeProjectFile("cron/load-wikis.php", <<<'PHP'
+		<?php
+		function go():void {
+			file_put_contents("selected-output.txt", "load-wikis");
+		}
+		PHP);
+
+		$cronContents = <<<CRON
+		* * * * * build-index
+		* * * * * load-wikis.php
+		CRON;
+
+		$this->writeCronContents($cronContents);
+		$stream = $this->getStream();
+		chdir($this->projectDirectory);
+
+		$args = new ArgumentValueList();
+		$args->set("now", "load-wikis");
+		$command = new RunCommand();
+		$command->setStream($stream);
+		$statusCode = $command->run($args);
+
+		self::assertSame(0, $statusCode);
+		self::assertSame(
+			"load-wikis",
+			file_get_contents($this->projectDirectory . "/selected-output.txt")
+		);
+		self::assertStringContainsString(
+			"Ran 1 job now.",
+			$this->getFullOutput($stream)
+		);
+	}
+
+	public function testRunNowNamedCronJobNotFound():void {
+		$this->writeProjectFile("cron/build-index.php", <<<'PHP'
+		<?php
+		function go():void {
+			file_put_contents("selected-output.txt", "build-index");
+		}
+		PHP);
+
+		$cronContents = <<<CRON
+		* * * * * build-index
+		CRON;
+
+		$this->writeCronContents($cronContents);
+		$stream = $this->getStream();
+		chdir($this->projectDirectory);
+
+		$args = new ArgumentValueList();
+		$args->set("now", "load-wikis");
+		$command = new RunCommand();
+		$command->setStream($stream);
+		$statusCode = $command->run($args);
+
+		self::assertSame(2, $statusCode);
+		self::assertFileDoesNotExist(
+			$this->projectDirectory . "/selected-output.txt"
+		);
+		self::assertStreamError(
+			"No cron job found matching \"load-wikis\" in crontab.",
+			$stream
+		);
+	}
+
 	public function testRunNowCronGoScriptUsesProjectServiceContainer():void {
 		$outputFile = $this->projectDirectory . "/service-output.txt";
 		$this->writeProjectFile("config.default.ini", <<<INI
@@ -121,55 +194,56 @@ service_loader = ServiceContainer
 INI);
 
 		$this->writeProjectFile("src/ServiceContainer.php", <<<PHP
-<?php
-namespace TestApp;
-
-use Gt\Config\Config;
-use Gt\ServiceContainer\Container;
-use TestApp\Service\Recorder;
-
-class ServiceContainer {
-	public function __construct(
-		private readonly Config \$config,
-		private readonly Container \$container,
-	) {
-	}
-
-	public function loadRecorder():Recorder {
-		return new Recorder("$outputFile");
-	}
-}
-PHP);
+		<?php
+		namespace TestApp;
+		
+		use Gt\Config\Config;
+		use Gt\ServiceContainer\Container;
+		use TestApp\Service\Recorder;
+		
+		class ServiceContainer {
+			public function __construct(
+				private readonly Config \$config,
+				private readonly Container \$container,
+			) {
+			}
+		
+			public function loadRecorder():Recorder {
+				return new Recorder("$outputFile");
+			}
+		}
+		PHP);
 
 		$this->writeProjectFile("src/Service/Recorder.php", <<<'PHP'
-<?php
-namespace TestApp\Service;
-
-class Recorder {
-	public function __construct(
-		private readonly string $path,
-	) {
-	}
-
-	public function write(string $value):void {
-		file_put_contents($this->path, $value);
-	}
-}
-PHP);
+		<?php
+		namespace TestApp\Service;
+		
+		class Recorder {
+			public function __construct(
+				private readonly string $path,
+			) {
+			}
+		
+			public function write(string $value):void {
+				file_put_contents($this->path, $value);
+			}
+		}
+		PHP);
 
 		$this->writeProjectFile("cron/cache.php", <<<'PHP'
-<?php
-use Gt\Input\Input;
-use TestApp\Service\Recorder;
-
-function go(Input $input, Recorder $recorder):void {
-	$recorder->write($input->getString("type"));
-}
-PHP);
+		<?php
+		use Gt\Input\Input;
+		use TestApp\Service\Recorder;
+		
+		function go(Input $input, Recorder $recorder):void {
+			$recorder->write($input->getString("type"));
+		}
+		PHP);
 
 		$cronContents = <<<CRON
-* * * * * cache?type=db
-CRON;
+		* * * * * cache?type=db
+		CRON;
+
 		$this->writeCronContents($cronContents);
 		$stream = $this->getStream();
 		chdir($this->projectDirectory);
@@ -497,8 +571,8 @@ CRON;
 
 	public function testRunInvalidSyntax() {
 		$cronContents = <<<CRON
-* * This is wrong syntax
-CRON;
+		* * This is wrong syntax
+		CRON;
 		$this->writeCronContents($cronContents);
 		$stream = $this->getStream();
 		chdir($this->projectDirectory);
@@ -514,8 +588,8 @@ CRON;
 
 	public function testRunNowFunction() {
 		$cronContents = <<<CRON
-* * * * * \GT\Cron\Test\Helper\ExampleClass::doSomething
-CRON;
+		* * * * * \GT\Cron\Test\Helper\ExampleClass::doSomething
+		CRON;
 		$this->writeCronContents($cronContents);
 		$stream = $this->getStream();
 		chdir($this->projectDirectory);
@@ -552,8 +626,8 @@ CRON;
 
 	public function testRunNowFunctionWithArguments() {
 		$cronContents = <<<CRON
-* * * * * \GT\Cron\Test\Helper\ExampleClass::doSomething("a test message", 123)
-CRON;
+		* * * * * \GT\Cron\Test\Helper\ExampleClass::doSomething("a test message", 123)
+		CRON;
 		$this->writeCronContents($cronContents);
 		$stream = $this->getStream();
 		chdir($this->projectDirectory);
@@ -584,8 +658,8 @@ CRON;
 
 	public function testRunNowFunctionNoSlash() {
 		$cronContents = <<<CRON
-* * * * * GT\Cron\Test\Helper\ExampleClass::doSomething
-CRON;
+		* * * * * GT\Cron\Test\Helper\ExampleClass::doSomething
+		CRON;
 		$this->writeCronContents($cronContents);
 		$stream = $this->getStream();
 		chdir($this->projectDirectory);
@@ -603,8 +677,8 @@ CRON;
 
 	public function testRunNowScript() {
 		$cronContents = <<<CRON
-* * * * * /path/to/script/doSomething
-CRON;
+		* * * * * /path/to/script/doSomething
+		CRON;
 		$this->writeCronContents($cronContents);
 		$stream = $this->getStream();
 		chdir($this->projectDirectory);
@@ -641,8 +715,8 @@ CRON;
 		file_put_contents($cronScriptPath, "<?php");
 
 		$cronContents = <<<CRON
-* * * * * myScript.php
-CRON;
+		* * * * * myScript.php
+		CRON;
 		$this->writeCronContents($cronContents);
 		$stream = $this->getStream();
 		chdir($this->projectDirectory);
@@ -679,8 +753,8 @@ CRON;
 		file_put_contents($cronScriptPath, "<?php");
 
 		$cronContents = <<<CRON
-* * * * * myScript
-CRON;
+		* * * * * myScript
+		CRON;
 		$this->writeCronContents($cronContents);
 		$stream = $this->getStream();
 		chdir($this->projectDirectory);
@@ -709,8 +783,8 @@ CRON;
 
 	public function testRunNowScriptWithArguments() {
 		$cronContents = <<<CRON
-* * * * * /path/to/script/doSomething "a test message" 123
-CRON;
+		* * * * * /path/to/script/doSomething "a test message" 123
+		CRON;
 		$this->writeCronContents($cronContents);
 		$stream = $this->getStream();
 		chdir($this->projectDirectory);
@@ -739,9 +813,9 @@ CRON;
 
 	public function testRunNowScriptAndFunction() {
 		$cronContents = <<<CRON
-* * * * * /path/to/script/doSomething "a test message" 123
-* * * * * GT\Cron\Test\Helper\ExampleClass::doSomething
-CRON;
+		* * * * * /path/to/script/doSomething "a test message" 123
+		* * * * * GT\Cron\Test\Helper\ExampleClass::doSomething
+		CRON;
 		$this->writeCronContents($cronContents);
 		$stream = $this->getStream();
 		chdir($this->projectDirectory);
@@ -784,8 +858,8 @@ CRON;
 
 	public function testRunNowScriptNotExists() {
 		$cronContents = <<<CRON
-* * * * * /path/to/script/that/does/not/exist
-CRON;
+		* * * * * /path/to/script/that/does/not/exist
+		CRON;
 		$this->writeCronContents($cronContents);
 		$stream = $this->getStream();
 		chdir($this->projectDirectory);
@@ -807,8 +881,8 @@ CRON;
 
 	public function testRunNowFunctionNotExists() {
 		$cronContents = <<<CRON
-* * * * * GT\Cron\Test\Nothing::thisDoesNotExist
-CRON;
+		* * * * * GT\Cron\Test\Nothing::thisDoesNotExist
+		CRON;
 		$this->writeCronContents($cronContents);
 		$stream = $this->getStream();
 		chdir($this->projectDirectory);

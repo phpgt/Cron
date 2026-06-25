@@ -65,10 +65,15 @@ class Queue {
 		return $commandList;
 	}
 
-	public function runAllJobs():int {
+	/** @param null|callable(string):bool $matches */
+	public function runAllJobs(?callable $matches = null):int {
 		$jobsRan = 0;
 
 		foreach($this->jobList as $job) {
+			if($matches && !$matches($job->getCommand())) {
+				continue;
+			}
+
 			$job->run();
 			$jobsRan++;
 		}
