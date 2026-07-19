@@ -23,7 +23,9 @@ class GoFunctionExecutor {
 			$this->setupProjectAutoloader($config);
 
 			$container = $this->createContainer($config);
-			$container->set(Input::fromQuery($cronScript->getQuery()));
+			$container->set(
+				(new QueryInput($cronScript->getQuery()))->getInput()
+			);
 
 			$injector = new Injector($container);
 			$functionName = $this->loadGoFunction($cronScript->getPath());
