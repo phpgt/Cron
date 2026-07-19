@@ -1,17 +1,24 @@
 <?php
 namespace GT\Cron;
 
-class Input extends \Gt\Input\Input {
+use Gt\Input\Input;
+
+class QueryInput {
 	/**
 	 * @param array<string, mixed> $query
 	 */
-	public static function fromQuery(array $query):self {
-		return new self(
+	public function __construct(
+		private readonly array $query,
+	) {
+	}
+
+	public function getInput():Input {
+		return new Input(
 			array_map(
 				static fn(mixed $value):string => is_array($value)
 					? json_encode($value) ?: ""
 					: (string)$value,
-				$query
+				$this->query
 			)
 		);
 	}
