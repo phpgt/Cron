@@ -3,8 +3,8 @@ namespace GT\Cron\Test\Command;
 
 use DateTime;
 use DateTimeZone;
-use Gt\Cli\Argument\ArgumentValueList;
-use Gt\Cli\Stream;
+use GT\Cli\Argument\ArgumentValueList;
+use GT\Cli\Stream;
 use GT\Cron\Cli\RunCommand;
 use GT\Cron\Test\Helper\ExampleClass;
 use GT\Cron\Test\Helper\Override;
@@ -33,7 +33,7 @@ class RunCommandTest extends CommandTestCase {
 			);
 			self::assertSame("Just ran 0 jobs", $output[1]);
 			self::assertSame(
-				"Next job at: 12:34:56 (23:49:56 UTC) [build-index]",
+				"Next job at: 12:34:56 (" . gmdate("H:i:s", $wait->getTimestamp()) . " UTC) [build-index]",
 				$output[2]
 			);
 		}
@@ -77,7 +77,7 @@ class RunCommandTest extends CommandTestCase {
 		$outputFile = $this->projectDirectory . "/cron-go-output.txt";
 		$this->writeProjectFile("cron/cache.php", <<<PHP
 		<?php
-		use Gt\Input\Input;
+		use GT\Input\Input;
 		
 		function go(Input \$input):void {
 			file_put_contents("$outputFile", \$input->getString("type") . ":" . \$input->getString("mode"));
@@ -197,8 +197,8 @@ INI);
 		<?php
 		namespace TestApp;
 		
-		use Gt\Config\Config;
-		use Gt\ServiceContainer\Container;
+		use GT\Config\Config;
+		use GT\ServiceContainer\Container;
 		use TestApp\Service\Recorder;
 		
 		class ServiceContainer {
@@ -232,7 +232,7 @@ INI);
 
 		$this->writeProjectFile("cron/cache.php", <<<'PHP'
 		<?php
-		use Gt\Input\Input;
+		use GT\Input\Input;
 		use TestApp\Service\Recorder;
 		
 		function go(Input $input, Recorder $recorder):void {
@@ -455,7 +455,7 @@ INI);
 
 		$this->writeProjectFile("cron/cache.php", <<<'PHP'
 		<?php
-		use Gt\Config\Config;
+		use GT\Config\Config;
 		
 		function go(Config $config):void {
 			$githubConfig = $config->getSection("github");

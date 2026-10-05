@@ -1,7 +1,7 @@
 <?php
 namespace GT\Cron;
 
-use Gt\Input\Input;
+use GT\Input\Input;
 
 class QueryInput {
 	/**

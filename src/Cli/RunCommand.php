@@ -2,11 +2,11 @@
 namespace GT\Cron\Cli;
 
 use DateTime;
-use Gt\Cli\Argument\ArgumentValueList;
-use Gt\Cli\Command\Command;
-use Gt\Cli\Parameter\NamedParameter;
-use Gt\Cli\Parameter\Parameter;
-use Gt\Cli\Stream;
+use GT\Cli\Argument\ArgumentValueList;
+use GT\Cli\Command\Command;
+use GT\Cli\Parameter\NamedParameter;
+use GT\Cli\Parameter\Parameter;
+use GT\Cli\StreamName;
 use GT\Cron\CronException;
 use GT\Cron\CronExplainer;
 use GT\Cron\CrontabNotFoundException;
@@ -44,7 +44,7 @@ class RunCommand extends Command {
 		catch(CronException $exception) {
 			$this->stream->writeLine(
 				$exception->getMessage(),
-				Stream::ERROR
+				StreamName::ERROR
 			);
 			return 2;
 		}
@@ -73,14 +73,14 @@ class RunCommand extends Command {
 			$this->stream->writeLine(
 				"Error executing command: "
 				. $exception->getMessage(),
-				Stream::ERROR
+				StreamName::ERROR
 			);
 		}
 		catch(FunctionExecutionException $exception) {
 			$this->stream->writeLine(
 				"Error executing function: "
 				. $exception->getMessage(),
-				Stream::ERROR
+				StreamName::ERROR
 			);
 		}
 
@@ -114,7 +114,7 @@ class RunCommand extends Command {
 		catch(JobNotFoundException $exception) {
 			$this->stream->writeLine(
 				$exception->getMessage(),
-				Stream::ERROR
+				StreamName::ERROR
 			);
 			return 2;
 		}

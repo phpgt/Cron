@@ -2,7 +2,7 @@
 namespace GT\Cron\Test\Command;
 
 use DirectoryIterator;
-use Gt\Cli\Stream;
+use GT\Cli\Stream;
 use PHPUnit\Framework\TestCase;
 
 class CommandTestCase extends TestCase {
