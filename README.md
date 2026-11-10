@@ -33,6 +33,8 @@ Define background jobs in standard crontab format and the Cron Runner will execu
 
 Start the Runner: `vendor/bin/cron`.
 
+A missing crontab is a normal no-op: the command prints a skip message and exits successfully with status 0, including in watch, validate and explain modes. Existing malformed crontab files still report an error.
+
 If you're using [WebEngine](https://php.gt/webengine), the Cron Runner is automatically started for you by running `gt run`.
 
 ## Examples
