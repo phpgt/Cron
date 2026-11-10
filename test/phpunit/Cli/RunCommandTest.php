@@ -1,5 +1,5 @@
 <?php
-namespace GT\Cron\Test\Integration\Cli;
+namespace GT\Cron\Test\Cli;
 
 use GT\Cron\Cli\RunCommand;
 use GT\Cli\Argument\ArgumentValueList;
