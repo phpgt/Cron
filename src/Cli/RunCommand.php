@@ -39,7 +39,7 @@ class RunCommand extends Command {
 		}
 		catch(CrontabNotFoundException) {
 			$this->stream->writeLine("Skipping cron as there is no crontab file.");
-			return 1;
+			return 0;
 		}
 		catch(CronException $exception) {
 			$this->stream->writeLine(

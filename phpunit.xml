@@ -15,6 +15,7 @@
 				./test/phpunit/
 			</directory>
 		</testsuite>
+
 	</testsuites>
 
 	<logging />
