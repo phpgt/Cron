@@ -45,13 +45,13 @@ class Runner {
 		$this->continue = $continue;
 
 		do {
+			$this->queue->now(new DateTime());
 			$this->queue->reset();
 			$runCommandList = $this->queue->runDueJobsAndGetCommands();
 			$jobsRan = count($runCommandList);
+			$this->queue->now(new DateTime());
 
 			if(is_callable($this->runCallback)) {
-				$this->queue->now(new DateTime());
-
 				call_user_func(
 					$this->runCallback,
 					$jobsRan,
@@ -63,6 +63,7 @@ class Runner {
 			}
 
 			if($this->continue) {
+				$this->queue->now(new DateTime());
 				sleep($this->queue->secondsUntilNextJob());
 			}
 		}

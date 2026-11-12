@@ -59,13 +59,18 @@ class RunnerTest extends TestCase {
 				return;
 			}
 
-			// Stop after the first wakeup, regardless of whether the job was executed.
+			if($sleeps === 2) {
+				$clock->modify("+1 hour");
+				return;
+			}
+
+			// Stop after two wakeups, regardless of whether the jobs were executed.
 			$sut->continue = false;
 		});
 
 		$sut->run(true);
 
-		self::assertSame(["11:00:00"], $executions, "The due job must run on waking, with or without a display callback.");
+		self::assertSame(["11:00:00", "12:00:00"], $executions, "Each due job must run once on waking, with or without a display callback.");
 	}
 
 	public static function watchCallbacks():array {
