@@ -43,11 +43,21 @@ class ServiceTest extends TestCase {
 		$path = $sut->generate();
 		$contents = file_get_contents($path);
 		self::assertSame("$this->project/cron.service", $path);
+		self::assertStringContainsString("Description=" . basename($this->project) . " - PHP.GT cron scheduler\n", $contents);
 		self::assertStringContainsString("User=" . fileowner("$this->project/vendor") . "\n", $contents);
 		self::assertStringContainsString("Group=" . filegroup("$this->project/vendor") . "\n", $contents);
 		self::assertStringContainsString('WorkingDirectory=' . $this->project . "\n", $contents);
 		self::assertStringContainsString('ExecStart="' . PHP_BINARY . '" "' . $this->project . '/vendor/bin/cron" --watch', $contents);
 		self::assertStringContainsString("Restart=always\nRestartSec=10", $contents);
+	}
+
+	public function testGenerate_descriptionUsesProjectNameAndEscapesSystemdSpecifiers():void {
+		$project = "$this->project/www.%i.php.gt";
+		mkdir($project);
+		$sut = new Service("$project/");
+		$contents = file_get_contents($sut->generate(["working-directory" => $this->project]));
+		self::assertStringContainsString("Description=www.%%i.php.gt - PHP.GT cron scheduler\n", $contents);
+		self::assertStringContainsString("WorkingDirectory=$this->project\n", $contents);
 	}
 
 	public function testGenerate_overridesAndEscapesPaths():void {
