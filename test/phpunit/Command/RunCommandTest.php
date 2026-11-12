@@ -36,7 +36,7 @@ class RunCommandTest extends CommandTestCase {
 		}
 	}
 
-	public function testRun_installServiceMissingFileReportsFailure():void {
+	public function testRun_installServiceMissingFileReportsGenerationFailure():void {
 		$previousDirectory = getcwd();
 		$args = new ArgumentValueList();
 		$args->set("install-service");
@@ -46,7 +46,7 @@ class RunCommandTest extends CommandTestCase {
 		try {
 			chdir($this->projectDirectory);
 			self::assertSame(2, $sut->run($args));
-			self::assertStreamError("Generate cron.service", $stream);
+			self::assertStreamError("Cannot infer service user", $stream);
 		}
 		finally {
 			chdir($previousDirectory);

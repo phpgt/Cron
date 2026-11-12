@@ -12,7 +12,8 @@ use GT\Cron\Test\Helper\Override;
  * @preserveGlobalState disabled
  */
 class ServiceCommandTest extends CommandTestCase {
-	public function testRun_combinedFlagsGenerateThenInstallWithoutStartingJobs():void {
+	/** @dataProvider installationFlags */
+	public function testRun_generateThenInstallWithoutStartingJobs(array $flags):void {
 		$this->writeProjectFile("vendor/bin/cron", "<?php");
 		$this->writeProjectFile("bin/systemctl", "#!/bin/sh\nprintf '%s\\n' \"\$*\" >> "
 			. escapeshellarg("$this->projectDirectory/systemctl.log") . "\n");
@@ -22,11 +23,11 @@ class ServiceCommandTest extends CommandTestCase {
 		$stream = $this->getStream();
 		$sut = new RunCommand();
 		$sut->setStream($stream);
-		$arguments = new CommandArgumentList("run", "cron",
-			"--generate-service", "--install-service", "--user", "www-data", "--group", "www-data",
+		$arguments = new CommandArgumentList("run", "cron", ...[
+			...$flags, "--user", "www-data", "--group", "www-data",
 			"--working-directory", $this->projectDirectory, "--php-binary", PHP_BINARY,
 			"--cron-binary", "$this->projectDirectory/vendor/bin/cron", "--restart-seconds", "15",
-		);
+		]);
 		$previousDirectory = getcwd();
 		$previousPath = getenv("PATH");
 		$name = basename($this->projectDirectory) . "-cron.service";
@@ -54,6 +55,37 @@ class ServiceCommandTest extends CommandTestCase {
 		finally {
 			chdir($previousDirectory);
 			putenv("PATH=$previousPath");
+		}
+	}
+
+	public static function installationFlags():array {
+		return [
+			"explicit generation" => [["--generate-service", "--install-service"]],
+			"automatic generation" => [["--install-service"]],
+		];
+	}
+
+	public function testRun_installPreservesCustomServiceWithoutProjectDependencies():void {
+		$contents = "[Service]\nUser=custom-user\nExecStart=/custom/cron --watch\n";
+		$this->writeProjectFile("cron.service", $contents);
+		$arguments = new ArgumentValueList();
+		$arguments->set("install-service");
+		$arguments->set("user", "ignored-override");
+		$stream = $this->getStream();
+		$sut = new ServiceCommand($stream);
+		Override::setCallback("symlink", function(string $source) use ($contents):bool {
+			self::assertSame($contents, file_get_contents($source));
+			throw new \GT\Cron\CronException("Reached installation with custom service intact");
+		});
+		$previousDirectory = getcwd();
+		try {
+			chdir($this->projectDirectory);
+			self::assertSame(2, $sut->run($arguments));
+			self::assertStreamError("Reached installation with custom service intact", $stream);
+			self::assertSame($contents, file_get_contents("cron.service"));
+		}
+		finally {
+			chdir($previousDirectory);
 		}
 	}
 

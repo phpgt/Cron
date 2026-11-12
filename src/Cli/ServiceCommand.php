@@ -15,7 +15,7 @@ class ServiceCommand {
 	public function run(ArgumentValueList $arguments):int {
 		try {
 			$service = new Service(getcwd());
-			if($arguments->contains("generate-service")) {
+			if($this->shouldGenerate($arguments)) {
 				$options = [];
 				foreach(["user", "group", "working-directory", "php-binary", "cron-binary", "restart-seconds"] as $name) {
 					if($arguments->contains($name)) {
@@ -36,11 +36,25 @@ class ServiceCommand {
 		}
 	}
 
+	private function shouldGenerate(ArgumentValueList $arguments):bool {
+		if($arguments->contains("generate-service")) {
+			return true;
+		}
+
+		$path = getcwd() . "/cron.service";
+		return $arguments->contains("install-service") && !file_exists($path) && !is_link($path);
+	}
+
 	/** @return Parameter[] */
 	public function getParameterList():array {
 		return [
 			new Parameter(false, "generate-service", null, "Generate cron.service in the project root."),
-			new Parameter(false, "install-service", null, "Link cron.service into systemd and enable it at boot."),
+			new Parameter(
+				false,
+				"install-service",
+				null,
+				"Generate cron.service if missing, link it into systemd and enable it at boot.",
+			),
 			new Parameter(true, "user", null, "Service user (defaults to the vendor directory owner UID)."),
 			new Parameter(true, "group", null, "Service group (defaults to the vendor directory group GID)."),
 			new Parameter(true, "working-directory", null, "Project working directory (defaults to the current directory)."),
