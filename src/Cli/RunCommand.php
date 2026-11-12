@@ -21,8 +21,15 @@ use GT\Cron\ScriptExecutionException;
 class RunCommand extends Command {
 	private ?LocalTime $localTime = null;
 
-	/** @SuppressWarnings(PHPMD.ExitExpression) */
 	public function run(?ArgumentValueList $arguments = null):int {
+		if($arguments->contains("generate-service") || $arguments->contains("install-service")) {
+			return (new ServiceCommand($this->stream))->run($arguments);
+		}
+
+		return $this->runSchedule($arguments);
+	}
+
+	private function runSchedule(ArgumentValueList $arguments):int {
 		$this->localTime()->applySystemTimezone();
 
 		$filename = $arguments->get("file", "crontab");
@@ -51,7 +58,7 @@ class RunCommand extends Command {
 
 		if($arguments->contains("validate")) {
 			$this->writeLine("Syntax OK at $filePath");
-			exit(0);
+			return 0;
 		}
 
 		if($arguments->contains("explain")) {
@@ -269,6 +276,7 @@ class RunCommand extends Command {
 	/** @return  Parameter[] */
 	public function getOptionalParameterList():array {
 		return [
+			...(new ServiceCommand())->getParameterList(),
 			new Parameter(
 				false,
 				"watch",

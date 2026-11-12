@@ -11,6 +11,48 @@ use GT\Cron\Test\Helper\Override;
 
 /** @runTestsInSeparateProcesses  */
 class RunCommandTest extends CommandTestCase {
+	public function testRun_generateServiceDoesNotRunDueJobs():void {
+		$previousDirectory = getcwd();
+		$this->writeProjectFile("vendor/bin/cron", "<?php");
+		$this->writeProjectFile("cron/example.php", '<?php function go():void { file_put_contents("executed", "yes"); }');
+		$this->writeCronContents("* * * * * example");
+		$args = new ArgumentValueList();
+		$args->set("generate-service");
+		$args->set("user", "www-data");
+		$args->set("restart-seconds", "15");
+		$stream = $this->getStream();
+		$sut = new RunCommand();
+		$sut->setStream($stream);
+		try {
+			chdir($this->projectDirectory);
+			self::assertSame(0, $sut->run($args));
+			self::assertFileExists("cron.service");
+			self::assertFileDoesNotExist("executed");
+			self::assertStringContainsString("RestartSec=15", file_get_contents("cron.service"));
+			self::assertStreamOutput("Generated", $stream);
+		}
+		finally {
+			chdir($previousDirectory);
+		}
+	}
+
+	public function testRun_installServiceMissingFileReportsGenerationFailure():void {
+		$previousDirectory = getcwd();
+		$args = new ArgumentValueList();
+		$args->set("install-service");
+		$stream = $this->getStream();
+		$sut = new RunCommand();
+		$sut->setStream($stream);
+		try {
+			chdir($this->projectDirectory);
+			self::assertSame(2, $sut->run($args));
+			self::assertStreamError("Cannot infer service user", $stream);
+		}
+		finally {
+			chdir($previousDirectory);
+		}
+	}
+
 	public function testCronRunStepDisplaysCurrentTimeFirstWithUtc():void {
 		$previousTimezone = date_default_timezone_get();
 		date_default_timezone_set("Pacific/Chatham");

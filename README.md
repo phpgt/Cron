@@ -46,3 +46,65 @@ There is an [example](example/README.md) directory with numbered scripts that ca
 [JetBrains Open Source sponsorship program](https://www.jetbrains.com/community/opensource/)
 
 [![JetBrains logo.](https://resources.jetbrains.com/storage/products/company/brand/logos/jetbrains.svg)](https://www.jetbrains.com/community/opensource/)
+
+## Running on a systemd server
+
+From your application's root directory, generate its service file:
+
+```sh
+gt cron --generate-service
+# Without GtCommand: vendor/bin/cron --generate-service
+```
+
+This writes `cron.service` in the current project directory (replacing a previous
+version). It validates the project's crontab without executing jobs. Defaults are
+inferred from the project: the owner UID and group GID of `vendor`, the current
+working directory, the running PHP executable, and `vendor/bin/cron`. Restart delay
+is 10 seconds. Numeric UID/GID values are accepted by systemd.
+
+Override individual settings when needed:
+
+```sh
+gt cron --generate-service --user www-data --group www-data \
+  --working-directory /var/www/phpgt/www.php.gt \
+  --php-binary /usr/bin/php --cron-binary /var/www/phpgt/www.php.gt/vendor/bin/cron \
+  --restart-seconds 15
+```
+
+Relative override paths resolve against the current project directory. Even with a
+working-directory override, the generated file stays in the current project root.
+Review it, then install with system privileges:
+
+```sh
+sudo vendor/bin/cron --install-service
+# Or: sudo gt cron --install-service
+```
+
+Installation symlinks `cron.service` into `/etc/systemd/system`, using the current
+project directory's basename followed by `-cron.service`, reloads systemd, and
+enables startup at boot and starts the service immediately using
+`systemctl enable --now`. If `cron.service` is missing, `--install-service` generates
+it first, using the same defaults and overrides as `--generate-service`. An existing
+service file is installed unchanged; pass `--generate-service` as well to regenerate
+it explicitly. To enable startup at boot without starting the service immediately, use
+`sudo gt cron --install-service --no-start` (or the equivalent `vendor/bin/cron` command). Reinstalling
+the same symlink is supported; an existing file or link to another service is
+rejected. Project basenames must contain only letters, numbers, dots, underscores
+or hyphens. Keep the project and service file at stable paths. On a shared host,
+project basenames must be unique. Generation and installation can also be combined
+with `--generate-service --install-service`.
+
+The service runs `cron --watch` in the foreground and restarts after exits. To
+inspect or manage it (substitute your project's service name):
+
+```sh
+systemctl status www.php.gt-cron.service
+journalctl -u www.php.gt-cron.service -f
+sudo systemctl restart www.php.gt-cron.service
+sudo systemctl disable --now www.php.gt-cron.service
+```
+
+Restart after deployments to load changed schedules, configuration and PHP code.
+For removal, disable/stop it first, remove its symlink from `/etc/systemd/system`,
+and run `sudo systemctl daemon-reload`. The service does not add job timeouts,
+missed-run replay, or graceful job completion on shutdown.
