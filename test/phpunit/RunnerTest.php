@@ -3,6 +3,7 @@ namespace GT\Cron\Test;
 
 use DateInterval;
 use DateTime;
+use GT\Cron\CronExpression;
 use GT\Cron\Job;
 use GT\Cron\JobRepository;
 use GT\Cron\ParseException;
@@ -13,6 +14,69 @@ use GT\Cron\Test\Helper\Override;
 use PHPUnit\Framework\TestCase;
 
 class RunnerTest extends TestCase {
+	/**
+	 * @dataProvider watchCallbacks
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function testRun_watchExecutesJobWhenWakingAtScheduledTime(bool $withCallback):void {
+		$clock = new DateTime("2026-11-12 10:59:30 UTC");
+		$queue = new class($clock) extends Queue {
+			public function __construct(private readonly DateTime $clock) {
+				$initialTime = clone $clock;
+				parent::__construct($initialTime);
+			}
+
+			public function now(?DateTime $newNow = null):DateTime {
+				// Substitute the controlled clock only when the runner asks to refresh it.
+				// Reads still return the stored time, preserving the real queue behaviour.
+				return parent::now($newNow === null ? null : clone $this->clock);
+			}
+		};
+		$executions = [];
+		$job = $this->getMockBuilder(Job::class)
+			->setConstructorArgs([new CronExpression("0 * * * *"), "hourly"])
+			->onlyMethods(["run"])->getMock();
+		$job->method("run")->willReturnCallback(function() use (&$executions, $clock):void {
+			$executions []= $clock->format("H:i:s");
+		});
+		$jobs = $this->createStub(JobRepository::class);
+		$jobs->method("create")->willReturn($job);
+		$queues = $this->createStub(QueueRepository::class);
+		$queues->method("createAtTime")->willReturn($queue);
+		$sut = new Runner($jobs, $queues, "0 * * * * hourly", clone $clock);
+		if($withCallback) {
+			$sut->setRunCallback(function():void {});
+		}
+
+		$sleeps = 0;
+		Override::setCallback("sleep", function(int $seconds) use (&$sleeps, $clock, $sut, &$executions):void {
+			$sleeps++;
+			if($sleeps === 1) {
+				self::assertSame([], $executions, "The hourly job must not run before 11:00.");
+				self::assertSame(30, $seconds);
+				$clock->modify("+30 seconds");
+				return;
+			}
+
+			if($sleeps === 2) {
+				$clock->modify("+1 hour");
+				return;
+			}
+
+			// Stop after two wakeups, regardless of whether the jobs were executed.
+			$sut->continue = false;
+		});
+
+		$sut->run(true);
+
+		self::assertSame(["11:00:00", "12:00:00"], $executions, "Each due job must run once on waking, with or without a display callback.");
+	}
+
+	public static function watchCallbacks():array {
+		return ["with display callback" => [true], "without display callback" => [false]];
+	}
+
 	public function testParseException() {
 		$cronContents = <<<CRON
 * * * ABC * ThisShouldNotWork::example
