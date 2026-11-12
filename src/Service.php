@@ -76,14 +76,7 @@ class Service {
 			throw new CronException("Project directory name is not a valid service name.");
 		}
 		$target = "$this->unitDirectory/$name";
-		if(file_exists($target) || is_link($target)) {
-			if(!is_link($target) || realpath($target) !== $source) {
-				throw new CronException("Refusing to replace existing service: $target");
-			}
-		}
-		elseif(!symlink($source, $target)) {
-			throw new CronException("Unable to link $target. Installation requires system privileges.");
-		}
+		$this->link($source, $target);
 
 		$this->systemctl(["daemon-reload"]);
 		$arguments = ["enable"];
@@ -95,6 +88,17 @@ class Service {
 		return $name;
 	}
 
+	private function link(string $source, string $target):void {
+		if(file_exists($target) || is_link($target)) {
+			if(!is_link($target) || realpath($target) !== $source) {
+				throw new CronException("Refusing to replace existing service: $target");
+			}
+		}
+		elseif(!symlink($source, $target)) {
+			throw new CronException("Unable to link $target. Installation requires system privileges.");
+		}
+	}
+
 	/** @param list<string> $arguments */
 	protected function systemctl(array $arguments):void {
 		$output = tmpfile();
@@ -102,10 +106,11 @@ class Service {
 			throw new CronException("Unable to capture systemctl output.");
 		}
 		try {
-			$process = proc_open(["systemctl", ...$arguments], [1 => $output, 2 => $output], $pipes);
+			$process = proc_open(["systemctl", ...$arguments], [0 => ["pipe", "r"], 1 => $output, 2 => $output], $pipes);
 			if(!is_resource($process)) {
 				throw new CronException("Unable to execute systemctl.");
 			}
+			fclose($pipes[0]);
 			$status = proc_close($process);
 			rewind($output);
 			if($status !== 0) {
