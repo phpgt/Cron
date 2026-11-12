@@ -78,15 +78,16 @@ Review it, then install with system privileges:
 ```sh
 sudo vendor/bin/cron --install-service
 # Or: sudo gt cron --install-service
-sudo systemctl start www.php.gt-cron.service
 ```
 
 Installation symlinks `cron.service` into `/etc/systemd/system`, using the current
 project directory's basename followed by `-cron.service`, reloads systemd, and
-enables startup at boot. If `cron.service` is missing, `--install-service` generates
+enables startup at boot and starts the service immediately using
+`systemctl enable --now`. If `cron.service` is missing, `--install-service` generates
 it first, using the same defaults and overrides as `--generate-service`. An existing
 service file is installed unchanged; pass `--generate-service` as well to regenerate
-it explicitly. It does not start the service immediately. Reinstalling
+it explicitly. To enable startup at boot without starting the service immediately, use
+`sudo gt cron --install-service --no-start` (or the equivalent `vendor/bin/cron` command). Reinstalling
 the same symlink is supported; an existing file or link to another service is
 rejected. Project basenames must contain only letters, numbers, dots, underscores
 or hyphens. Keep the project and service file at stable paths. On a shared host,

@@ -25,8 +25,12 @@ class ServiceCommand {
 				$this->stream->writeLine("Generated " . $service->generate($options));
 			}
 			if($arguments->contains("install-service")) {
-				$name = $service->install();
-				$this->stream->writeLine("Enabled $name. Start with: systemctl start $name");
+				$noStart = $arguments->contains("no-start");
+				$name = $service->install(!$noStart);
+				$message = $noStart
+					? "Enabled $name. Start with: systemctl start $name"
+					: "Enabled and started $name.";
+				$this->stream->writeLine($message);
 			}
 			return 0;
 		}
@@ -53,8 +57,9 @@ class ServiceCommand {
 				false,
 				"install-service",
 				null,
-				"Generate cron.service if missing, link it into systemd and enable it at boot.",
+				"Generate cron.service if missing, link it into systemd, enable it at boot and start it.",
 			),
+			new Parameter(false, "no-start", null, "Enable the installed service at boot without starting it now."),
 			new Parameter(true, "user", null, "Service user (defaults to the vendor directory owner UID)."),
 			new Parameter(true, "group", null, "Service group (defaults to the vendor directory group GID)."),
 			new Parameter(true, "working-directory", null, "Project working directory (defaults to the current directory)."),

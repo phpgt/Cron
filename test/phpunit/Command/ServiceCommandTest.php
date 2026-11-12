@@ -13,7 +13,7 @@ use GT\Cron\Test\Helper\Override;
  */
 class ServiceCommandTest extends CommandTestCase {
 	/** @dataProvider installationFlags */
-	public function testRun_generateThenInstallWithoutStartingJobs(array $flags):void {
+	public function testRun_generateThenInstall(array $flags, bool $start):void {
 		$this->writeProjectFile("vendor/bin/cron", "<?php");
 		$this->writeProjectFile("bin/systemctl", "#!/bin/sh\nprintf '%s\\n' \"\$*\" >> "
 			. escapeshellarg("$this->projectDirectory/systemctl.log") . "\n");
@@ -42,7 +42,8 @@ class ServiceCommandTest extends CommandTestCase {
 			putenv("PATH=$this->projectDirectory/bin:$previousPath");
 			$sut->checkArguments($arguments);
 			self::assertSame(0, $sut->run($sut->getArgumentValueList($arguments)));
-			self::assertSame("daemon-reload\nenable $name\n", file_get_contents("systemctl.log"));
+			$enable = $start ? "enable --now $name" : "enable $name";
+			self::assertSame("daemon-reload\n$enable\n", file_get_contents("systemctl.log"));
 			$contents = file_get_contents("cron.service");
 			self::assertStringContainsString("WorkingDirectory=$this->projectDirectory\n", $contents);
 			self::assertStringContainsString('ExecStart="' . PHP_BINARY . '" "' . $this->projectDirectory . '/vendor/bin/cron" --watch', $contents);
@@ -50,7 +51,8 @@ class ServiceCommandTest extends CommandTestCase {
 			self::assertFileDoesNotExist("executed");
 			self::assertStreamOutput("Generated", $stream);
 			$stream->getOutStream()->rewind();
-			self::assertStringContainsString("Enabled $name", $stream->getOutStream()->fread(10000));
+			$message = $start ? "Enabled and started $name." : "Enabled $name. Start with: systemctl start $name";
+			self::assertStringContainsString($message, $stream->getOutStream()->fread(10000));
 		}
 		finally {
 			chdir($previousDirectory);
@@ -60,8 +62,9 @@ class ServiceCommandTest extends CommandTestCase {
 
 	public static function installationFlags():array {
 		return [
-			"explicit generation" => [["--generate-service", "--install-service"]],
-			"automatic generation" => [["--install-service"]],
+			"explicit generation" => [["--generate-service", "--install-service"], true],
+			"automatic generation" => [["--install-service"], true],
+			"enable only" => [["--install-service", "--no-start"], false],
 		];
 	}
 

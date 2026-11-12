@@ -66,7 +66,7 @@ class Service {
 		}
 	}
 
-	public function install():string {
+	public function install(bool $start = true):string {
 		$source = realpath("$this->projectDirectory/cron.service");
 		if($source === false || !is_file($source)) {
 			throw new CronException("Generate cron.service before installing it.");
@@ -86,7 +86,12 @@ class Service {
 		}
 
 		$this->systemctl(["daemon-reload"]);
-		$this->systemctl(["enable", $name]);
+		$arguments = ["enable"];
+		if($start) {
+			$arguments []= "--now";
+		}
+		$arguments []= $name;
+		$this->systemctl($arguments);
 		return $name;
 	}
 

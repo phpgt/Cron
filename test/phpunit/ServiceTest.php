@@ -252,7 +252,8 @@ class ServiceTest extends TestCase {
 		}
 	}
 
-	public function testInstall_linksReloadsAndEnablesIdempotently():void {
+	/** @dataProvider startModes */
+	public function testInstall_linksReloadsAndEnablesIdempotently(bool $start):void {
 		file_put_contents("$this->project/cron.service", "[Unit]\n");
 		$sut = $this->getMockBuilder(Service::class)
 			->setConstructorArgs([$this->project, $this->units])
@@ -262,14 +263,19 @@ class ServiceTest extends TestCase {
 			->willReturnCallback(function(array $arguments) use (&$commands):void {
 				$commands []= $arguments;
 			});
-		$name = $sut->install();
+		$name = $sut->install($start);
 		self::assertSame(basename($this->project) . "-cron.service", $name);
 		self::assertSame("$this->project/cron.service", readlink("$this->units/$name"));
-		self::assertSame($name, $sut->install());
+		self::assertSame($name, $sut->install($start));
+		$enable = $start ? ["enable", "--now", $name] : ["enable", $name];
 		self::assertSame([
-			["daemon-reload"], ["enable", $name],
-			["daemon-reload"], ["enable", $name],
+			["daemon-reload"], $enable,
+			["daemon-reload"], $enable,
 		], $commands);
+	}
+
+	public static function startModes():array {
+		return ["start immediately" => [true], "enable only" => [false]];
 	}
 
 	public function testInstall_refusesExistingFile():void {
