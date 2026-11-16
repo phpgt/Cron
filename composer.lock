@@ -8,16 +8,16 @@
     "packages": [
         {
             "name": "justinrainbow/json-schema",
-            "version": "6.13.1",
+            "version": "6.14.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/jsonrainbow/json-schema.git",
-                "reference": "e54aacc4c0657b3a4af4f628428d2702146828c6"
+                "reference": "bae415e135dd68260c2d020ba392850231e9b1ab"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jsonrainbow/json-schema/zipball/e54aacc4c0657b3a4af4f628428d2702146828c6",
-                "reference": "e54aacc4c0657b3a4af4f628428d2702146828c6",
+                "url": "https://api.github.com/repos/jsonrainbow/json-schema/zipball/bae415e135dd68260c2d020ba392850231e9b1ab",
+                "reference": "bae415e135dd68260c2d020ba392850231e9b1ab",
                 "shasum": ""
             },
             "require": {
@@ -67,9 +67,9 @@
             ],
             "support": {
                 "issues": "https://github.com/jsonrainbow/json-schema/issues",
-                "source": "https://github.com/jsonrainbow/json-schema/tree/6.13.1"
+                "source": "https://github.com/jsonrainbow/json-schema/tree/6.14.0"
             },
-            "time": "2026-09-30T07:42:28+00:00"
+            "time": "2026-10-24T08:53:34+00:00"
         },
         {
             "name": "magicalex/write-ini-file",
@@ -527,16 +527,16 @@
         },
         {
             "name": "phpgt/http",
-            "version": "v1.3.9",
+            "version": "v2.0.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/phpgt/Http.git",
-                "reference": "eca66ac787bae767d2ff0363c5b243f809619ec4"
+                "reference": "0fa953702a7f3bd781feec1aafc2569636ce4e77"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpgt/Http/zipball/eca66ac787bae767d2ff0363c5b243f809619ec4",
-                "reference": "eca66ac787bae767d2ff0363c5b243f809619ec4",
+                "url": "https://api.github.com/repos/phpgt/Http/zipball/0fa953702a7f3bd781feec1aafc2569636ce4e77",
+                "reference": "0fa953702a7f3bd781feec1aafc2569636ce4e77",
                 "shasum": ""
             },
             "require": {
@@ -555,10 +555,10 @@
                 "willdurand/negotiation": "3.1.0"
             },
             "require-dev": {
-                "phpmd/phpmd": "^2.13",
+                "phpmd/phpmd": "^3.0",
                 "phpstan/phpstan": "^2.1",
                 "phpunit/phpunit": "^11.5",
-                "squizlabs/php_codesniffer": "^3.7"
+                "squizlabs/php_codesniffer": "^4.0"
             },
             "type": "library",
             "extra": {
@@ -579,7 +579,7 @@
             "description": "PSR-7 HTTP message implementation.",
             "support": {
                 "issues": "https://github.com/phpgt/Http/issues",
-                "source": "https://github.com/phpgt/Http/tree/v1.3.9"
+                "source": "https://github.com/phpgt/Http/tree/v2.0.1"
             },
             "funding": [
                 {
@@ -587,32 +587,32 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-04-24T12:58:50+00:00"
+            "time": "2026-11-03T21:59:36+00:00"
         },
         {
             "name": "phpgt/input",
-            "version": "v1.4.0",
+            "version": "v1.4.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/phpgt/Input.git",
-                "reference": "7710776d7437d3e24f37bb786236ff0c3da20785"
+                "reference": "3da1d716042f8316567bc47fdfa900860d7c92ef"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpgt/Input/zipball/7710776d7437d3e24f37bb786236ff0c3da20785",
-                "reference": "7710776d7437d3e24f37bb786236ff0c3da20785",
+                "url": "https://api.github.com/repos/phpgt/Input/zipball/3da1d716042f8316567bc47fdfa900860d7c92ef",
+                "reference": "3da1d716042f8316567bc47fdfa900860d7c92ef",
                 "shasum": ""
             },
             "require": {
-                "php": ">=8.3",
-                "phpgt/http": "1.*",
-                "phpgt/json": "^2.1"
+                "php": ">=8.4",
+                "phpgt/http": "^2.0",
+                "phpgt/json": "^2.3"
             },
             "require-dev": {
                 "phpmd/phpmd": "^2.13",
-                "phpstan/phpstan": "^1.10",
-                "phpunit/phpunit": "^10.5",
-                "squizlabs/php_codesniffer": "^3.7"
+                "phpstan/phpstan": "^2.2",
+                "phpunit/phpunit": "^12.5",
+                "squizlabs/php_codesniffer": "^4.0"
             },
             "type": "library",
             "extra": {
@@ -633,7 +633,7 @@
             "description": "Encapsulated user input.",
             "support": {
                 "issues": "https://github.com/phpgt/Input/issues",
-                "source": "https://github.com/phpgt/Input/tree/v1.4.0"
+                "source": "https://github.com/phpgt/Input/tree/v1.4.1"
             },
             "funding": [
                 {
@@ -641,20 +641,20 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-04-14T20:44:25+00:00"
+            "time": "2026-11-11T11:30:59+00:00"
         },
         {
             "name": "phpgt/json",
-            "version": "v2.3.1",
+            "version": "v2.3.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/phpgt/Json.git",
-                "reference": "6e39d18f884315916a2b5b0ef1ed9a2ceac1a8e7"
+                "reference": "4b17764823d749a46ab87b3817ff92f16a3aa0ea"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpgt/Json/zipball/6e39d18f884315916a2b5b0ef1ed9a2ceac1a8e7",
-                "reference": "6e39d18f884315916a2b5b0ef1ed9a2ceac1a8e7",
+                "url": "https://api.github.com/repos/phpgt/Json/zipball/4b17764823d749a46ab87b3817ff92f16a3aa0ea",
+                "reference": "4b17764823d749a46ab87b3817ff92f16a3aa0ea",
                 "shasum": ""
             },
             "require": {
@@ -664,7 +664,7 @@
                 "phpgt/dataobject": "^1.1"
             },
             "require-dev": {
-                "phpmd/phpmd": "^2.13",
+                "phpmd/phpmd": "^3.0",
                 "phpstan/phpstan": "^2.1",
                 "phpunit/phpunit": "^10.1",
                 "squizlabs/php_codesniffer": "^4.0"
@@ -689,7 +689,7 @@
             "description": " Structured, type-safe, immutable JSON objects.",
             "support": {
                 "issues": "https://github.com/phpgt/Json/issues",
-                "source": "https://github.com/phpgt/Json/tree/v2.3.1"
+                "source": "https://github.com/phpgt/Json/tree/v2.3.2"
             },
             "funding": [
                 {
@@ -697,7 +697,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-07-15T09:27:37+00:00"
+            "time": "2026-11-11T11:14:32+00:00"
         },
         {
             "name": "phpgt/promise",
