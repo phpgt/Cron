@@ -24,9 +24,10 @@ class Service {
 		$workingDirectory = $this->escapePath($workingDirectory);
 		$php = $this->quote($php);
 		$cron = $this->quote($cron, true);
+		$projectName = $this->escapePath(basename(rtrim($this->projectDirectory, DIRECTORY_SEPARATOR)));
 		$contents = <<<UNIT
 		[Unit]
-		Description=PHP.GT cron scheduler
+		Description=$projectName - PHP.GT cron scheduler
 		Wants=network-online.target
 		After=network-online.target
 		StartLimitIntervalSec=0
